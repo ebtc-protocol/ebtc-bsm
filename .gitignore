@@ -18,3 +18,4 @@ docs/
 medusa
 echidna
 crytic-export
+slither_results.json

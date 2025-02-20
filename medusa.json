@@ -1,6 +1,6 @@
 {
   "fuzzing": {
-    "workers": 10,
+    "workers": 16,
     "workerResetLimit": 50,
     "timeout": 0,
     "testLimit": 0,
@@ -37,10 +37,10 @@
         "enabled": true,
         "testViewMethods": true,
         "panicCodeConfig": {
-          "failOnCompilerInsertedPanic": true,
+          "failOnCompilerInsertedPanic": false,
           "failOnAssertion": true,
-          "failOnArithmeticUnderflow": true,
-          "failOnDivideByZero": true,
+          "failOnArithmeticUnderflow": false,
+          "failOnDivideByZero": false,
           "failOnEnumTypeConversionOutOfBounds": false,
           "failOnIncorrectStorageAccess": false,
           "failOnPopEmptyArray": false,

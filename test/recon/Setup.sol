@@ -14,9 +14,9 @@ import {BSMBase} from "../BSMTestBase.sol";
 abstract contract Setup is BaseSetup, BSMBase, ActorManager, AssetManager {
     address second_actor = address(0x411c3);
     bool hasMigrated;
-    
+
     // CONFIG
-    bool ALLOWS_REKT = bool(false);
+    bool ALLOWS_REKT = bool(true);
 
     function setup() internal virtual override {
         BSMBase.baseSetup();
@@ -58,5 +58,10 @@ abstract contract Setup is BaseSetup, BSMBase, ActorManager, AssetManager {
     modifier asActor() {
         vm.prank(_getActor());
         _;
+    }
+
+    modifier stateless() {
+        _;
+        revert("stateless");
     }
 }

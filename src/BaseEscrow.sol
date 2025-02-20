@@ -31,7 +31,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
         _initializeAuthority(_governance);
 
         // allow the BSM to transfer asset tokens
-        ASSET_TOKEN.approve(BSM, type(uint256).max);
+        ASSET_TOKEN.forceApprove(BSM, type(uint256).max); /// safe approve
     }
 
     function _totalBalance() internal virtual view returns (uint256) {
@@ -84,7 +84,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     }
 
     function previewWithdraw(uint256 _assetAmount) external view returns (uint256) {
-        return _previewWithdraw(_assetAmount);
+        return _previewWithdraw(_assetAmount); /// @audit TODO: Does this account for losses? Prob new Property tests
     }
 
     /// @notice Called on the source escrow during a migration by the BSM to transfer liquidity
@@ -110,8 +110,10 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
 
     function feeProfit() public view returns (uint256) {
         uint256 tb = _totalBalance();
-        if(tb > totalAssetsDeposited) {
-            return _totalBalance() - totalAssetsDeposited;
+        if(tb > totalAssetsDeposited) { /// @audit Gas
+            unchecked {
+                return tb - totalAssetsDeposited;
+            }
         }
 
         return 0;

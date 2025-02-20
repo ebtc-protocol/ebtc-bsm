@@ -41,8 +41,6 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
         /// @dev super._totalBalance() returns asset balance for this contract
         uint256 liquidBalance = super._totalBalance();
 
-        amountRedeemed = _amountRequired;
-
         if (_amountRequired > liquidBalance) {
             uint256 deficit;
             unchecked {
@@ -59,6 +57,9 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
             // amountRedeemed can be less than deficit because of rounding
             amountRedeemed = liquidBalance + (balanceAfter - balanceBefore);
+        } else {
+            // We have liquid amount so we return it
+            amountRedeemed = _amountRequired;
         }
     }
 
@@ -84,6 +85,9 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
         EXTERNAL_VAULT.redeem(EXTERNAL_VAULT.balanceOf(address(this)), address(this), address(this));
     }
 
+
+    /// @notice Can cause losses if the admin is not careful
+    /// Assumes: Slippage check is safe
     function depositToExternalVault(uint256 assetsToDeposit, uint256 minShares) external requiresAuth {
         ASSET_TOKEN.safeIncreaseAllowance(address(EXTERNAL_VAULT), assetsToDeposit);
         uint256 shares = EXTERNAL_VAULT.deposit(assetsToDeposit, address(this));
