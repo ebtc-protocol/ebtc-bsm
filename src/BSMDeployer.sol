@@ -12,10 +12,10 @@ contract BSMDeployer is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /** 
-    @notice Deploy the BSM contract and the Escrow in a single transaction.
-    @dev Initializes the bsm with the recently deployed escrow, prevents users from calling the bsm 
-    until initialized.
-     */
+    * @notice Deploy the BSM contract and the Escrow in a single transaction.
+    * @dev Initializes the bsm with the recently deployed escrow, prevents users from calling the bsm 
+    * until initialized.
+    */
     function deploy(
         address _assetToken,
         address _oraclePriceConstraint,
