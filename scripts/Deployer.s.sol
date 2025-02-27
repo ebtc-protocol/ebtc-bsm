@@ -7,6 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ActivePoolObserver} from "src/ActivePoolObserver.sol";
 import {BSMDeployer} from "src/BSMDeployer.sol";
 import {OraclePriceConstraint} from "../src/OraclePriceConstraint.sol";
+import {RateLimitingConstraint} from "../src/RateLimitingConstraint.sol";
 import {ITwapWeightedObserver} from "src/Dependencies/ITwapWeightedObserver.sol";//TODO alphabet sort
 import {tBTCChainlinkAdapter, AggregatorV3Interface} from "../src/tBTCChainlinkAdapter.sol";
 
@@ -15,6 +16,19 @@ import {tBTCChainlinkAdapter, AggregatorV3Interface} from "../src/tBTCChainlinkA
 * @dev Contract is ownable ensuring only the owner can trigger the system deployment
 */
 contract Deployer is Script, Ownable {
+    /// @notice All the required information needed to make a deployment
+    struct DeploymentConfig {
+    ITwapWeightedObserver observer;// The address of the ITwapWeightedObserver instance for managing time-weighted averages.
+    address assetOracle;    // The address of the asset price oracle.
+    address authority;      // The address of the governor.
+    AggregatorV3Interface tBtcUsdClFeed;// The oracle feed address for tBTC to USD prices.
+    AggregatorV3Interface btcUsdClFeed;//  The oracle feed address for BTC to USD prices.
+    address assetToken;     // The address of the asset token.
+    address ebtcToken;      // The address of the eBTC token.
+    address feeRecipient;   // The address of fees recipient.
+    address externalVault;  // The address of the external vault for asset management.
+}
+
     event ContractDeployed(address indexed bsm, address indexed escrow);//TODO
 
     constructor() Ownable(msg.sender) {}
@@ -22,35 +36,27 @@ contract Deployer is Script, Ownable {
     /** 
     * @notice Deploy function in charge of deploying the full bsm system.
     * @dev This function can only be called by the contract owner.
-    * @param _observer The address of the ITwapWeightedObserver instance for managing time-weighted averages.
-    * @param _assetOracle The address of the asset price oracle.
-    * @param _authority The address of the governor.
-    * @param _tBtcUsdClFeed The oracle feed address for tBTC to USD prices.
-    * @param _btcUsdClFeed The oracle feed address for BTC to USD prices.
-    * @param _assetToken The address of the asset token.
-    * @param _ebtcToken The address of the eBTC token.
-    * @param _feeRecipient The address of fees recipient.
-    * @param _externalVault The address of the external vault for asset management.
+    * @param config A DeploymentConfig with the needed information for deployment.
     */
-    function deploy(ITwapWeightedObserver _observer, address _assetOracle, address _authority, AggregatorV3Interface _tBtcUsdClFeed, AggregatorV3Interface _btcUsdClFeed, address _assetToken, address _ebtcToken, address _feeRecipient, address _externalVault) external onlyOwner {
+    function deploy(DeploymentConfig calldata config) external onlyOwner {
         // Deploy Observer contract
-        ActivePoolObserver observer = new ActivePoolObserver(_observer);
+        ActivePoolObserver observer = new ActivePoolObserver(config.observer);
         // Deploy Constrains contracts
         OraclePriceConstraint oraclePriceConstraint = new OraclePriceConstraint(
-            _assetOracle,
-            _authority
+            config.assetOracle,
+            config.authority
         );
 
-        RateLimitingConstraint rateLimitingConstraint = new RateLimitingConstraint(observer, _authority);
+        RateLimitingConstraint rateLimitingConstraint = new RateLimitingConstraint(address(observer), config.authority);
 
         // Deploy ChainlinkAdapter contract
-        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(_tBtcUsdClFeed, _btcUsdClFeed);//TODO this needs to be reused?
+        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);//TODO this needs to be reused?
 
         // Deploy Deployer contract
         BSMDeployer bsmDeployer = new BSMDeployer();
 
         // Call deployer contract
-        bsmDeployer.deploy(_assetToken, oraclePriceConstraint, rateLimitingConstraint, _ebtcToken, _feeRecipient, _authority, _externalVault);
+        bsmDeployer.deploy(config.assetToken, address(oraclePriceConstraint), address(rateLimitingConstraint), config.ebtcToken, config.feeRecipient, config.authority, config.externalVault);
 
 
         // TODO broadcast
