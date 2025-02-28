@@ -129,6 +129,8 @@ function test_inlined_withdrawProfitTest_1() public {
     gte(deltaFees, expected, "Recipient got at least expected");
     lte(deltaFees, amt, "Delta fees is at most profit");
 
+    eq(escrow.feeProfit(), 0, "Profit should be 0");
+
     // Total Balance of Vault should also move correctly
     gte(escrow.totalBalance(), balB4Escrow - amt, "Escrow balance decreases at most by profit");
     lte(escrow.totalBalance(), balB4Escrow - expected, "Escrow balance decreases at least by expected");
@@ -139,6 +141,7 @@ function test_inlined_withdrawProfitTest_1() public {
     escrow_claimProfit();
 
     console2.log("TotalBalance", escrow.totalBalance());
+    eq(escrow.feeProfit(), 0, "Profit should be 0");
 
  }
 

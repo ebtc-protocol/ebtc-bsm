@@ -115,10 +115,10 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         lte(escrow.totalBalance(), balB4Escrow - expected, "Escrow balance decreases at least by expected");
 
         // Profit should be 0
-        // NOTE: Edge case: The property breaks on 1 total supply due to rounding
-        if(escrow.EXTERNAL_VAULT().totalSupply() > 1) {
-            eq(escrow.feeProfit(), 0, "Profit should be 0");
-        }
+        // NOTE: Profit can be unable to withdraw the last share due to rounding errors
+        // As such profit doesn't reset to 0, but down to 1 wei of a share
+        uint256 maxLoss = escrow.EXTERNAL_VAULT().previewRedeem(1);
+        lte(escrow.feeProfit(), maxLoss, "Profit should be 0");
     }
 
     /// === BSM === ///
