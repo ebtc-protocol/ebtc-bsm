@@ -28,17 +28,19 @@ contract Deployer is Script, Ownable {
     address feeRecipient;   // The address of fees recipient.
     address externalVault;  // The address of the external vault for asset management.
 }
-
-    event ContractDeployed(address indexed bsm, address indexed escrow);//TODO
+    /// @notice event notifying of contracts deployments
+    event ContractsDeployed(address indexed observer, address indexed oracleConstrain, address indexed rateConstrain, address indexed adapter) anonymous;
 
     constructor() Ownable(msg.sender) {}
 
     /** 
     * @notice Deploy function in charge of deploying the full bsm system.
-    * @dev This function can only be called by the contract owner.
+    * @dev This function can only be called by the contract owner. To run it the ETH_MAINNET_RPC_URL or 
+    * SEPOLIA_URL variables need to exists in a .env file, depending on the target chain.
     * @param config A DeploymentConfig with the needed information for deployment.
     */
     function deploy(DeploymentConfig calldata config) external onlyOwner {
+        vm.startBroadcast();//TODO include PK
         // Deploy Observer contract
         ActivePoolObserver observer = new ActivePoolObserver(config.observer);
         // Deploy Constrains contracts
@@ -50,15 +52,15 @@ contract Deployer is Script, Ownable {
         RateLimitingConstraint rateLimitingConstraint = new RateLimitingConstraint(address(observer), config.authority);
 
         // Deploy ChainlinkAdapter contract
-        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);//TODO this needs to be reused?
+        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
 
+        emit ContractsDeployed(address(observer), address(oraclePriceConstraint), address(rateLimitingConstraint), address(adapter));
         // Deploy Deployer contract
         BSMDeployer bsmDeployer = new BSMDeployer();
 
-        // Call deployer contract
+        // Call deployer contract, this will emit an event on its own
         bsmDeployer.deploy(config.assetToken, address(oraclePriceConstraint), address(rateLimitingConstraint), config.ebtcToken, config.feeRecipient, config.authority, config.externalVault);
 
-
-        // TODO broadcast
+        vm.stopBroadcast();
     }
 }
