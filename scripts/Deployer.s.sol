@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.25;
 
-import {Script} from "forge-std/Script.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ActivePoolObserver} from "src/ActivePoolObserver.sol";
 import {BSMDeployer} from "src/BSMDeployer.sol";
+import {ITwapWeightedObserver} from "src/Dependencies/ITwapWeightedObserver.sol";
 import {OraclePriceConstraint} from "../src/OraclePriceConstraint.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RateLimitingConstraint} from "../src/RateLimitingConstraint.sol";
-import {ITwapWeightedObserver} from "src/Dependencies/ITwapWeightedObserver.sol";//TODO alphabet sort
+import {Script} from "forge-std/Script.sol";
 import {tBTCChainlinkAdapter, AggregatorV3Interface} from "../src/tBTCChainlinkAdapter.sol";
 
 /**
@@ -18,16 +18,15 @@ import {tBTCChainlinkAdapter, AggregatorV3Interface} from "../src/tBTCChainlinkA
 contract Deployer is Script, Ownable {
     /// @notice All the required information needed to make a deployment
     struct DeploymentConfig {
-    ITwapWeightedObserver observer;// The address of the ITwapWeightedObserver instance for managing time-weighted averages.
-    address assetOracle;    // The address of the asset price oracle.
-    address authority;      // The address of the governor.
-    AggregatorV3Interface tBtcUsdClFeed;// The oracle feed address for tBTC to USD prices.
-    AggregatorV3Interface btcUsdClFeed;//  The oracle feed address for BTC to USD prices.
-    address assetToken;     // The address of the asset token.
-    address ebtcToken;      // The address of the eBTC token.
-    address feeRecipient;   // The address of fees recipient.
-    address externalVault;  // The address of the external vault for asset management.
-}
+        ITwapWeightedObserver observer;// The address of the ITwapWeightedObserver instance for managing time-weighted averages.
+        address authority;      // The address of the governor.
+        AggregatorV3Interface tBtcUsdClFeed;// The oracle feed address for tBTC to USD prices.
+        AggregatorV3Interface btcUsdClFeed;//  The oracle feed address for BTC to USD prices.
+        address assetToken;     // The address of the asset token.
+        address ebtcToken;      // The address of the eBTC token.
+        address feeRecipient;   // The address of fees recipient.
+        address externalVault;  // The address of the external vault for asset management.
+    }
     /// @notice event notifying of contracts deployments
     event ContractsDeployed(address indexed observer, address indexed oracleConstrain, address indexed rateConstrain, address indexed adapter) anonymous;
 
@@ -43,16 +42,17 @@ contract Deployer is Script, Ownable {
         vm.startBroadcast();//TODO include PK
         // Deploy Observer contract
         ActivePoolObserver observer = new ActivePoolObserver(config.observer);
+
+        // Deploy ChainlinkAdapter contract
+        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
+
         // Deploy Constrains contracts
         OraclePriceConstraint oraclePriceConstraint = new OraclePriceConstraint(
-            config.assetOracle,
+            adapter,
             config.authority
         );
 
         RateLimitingConstraint rateLimitingConstraint = new RateLimitingConstraint(address(observer), config.authority);
-
-        // Deploy ChainlinkAdapter contract
-        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
 
         emit ContractsDeployed(address(observer), address(oraclePriceConstraint), address(rateLimitingConstraint), address(adapter));
         // Deploy Deployer contract
