@@ -29,6 +29,7 @@ contract DeployerTests is Test {
         });
         
         script = new Deployer();
+        assertTrue(address(script) != address(0));
     }
 
     function testSecurity() public {
@@ -38,12 +39,25 @@ contract DeployerTests is Test {
     }
 
     function testDeployment() public {
-        
+        vm.recordLogs();
         script.deploy(config);
-        
-        // Assertions TODO
-        //todo security check
-        //todo events checks
-        assertTrue(address(script) != address(0), "Contract should be deployed");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        assertGt(entries.length, 0);
+
+        // ContractsDeployed event is anonymous
+        assertEq(entries[0].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Oracle constrain
+        assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Rate constrain
+        //assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Deployer
+        assertEq(entries[1].topics[0], keccak256("OwnershipTransferred(address,address)"));// Source: BSM Deployer
+        assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: BSM
+        assertEq(entries[1].topics[0], keccak256("ContractDeployed(address,address)"));// Source: BSM Deployer
+
+    }
+
+    function testInvalidConfig() public {
+        Deployer.DeploymentConfig memory badConfig;
+
+        vm.expectRevert();
+        script.deploy(badConfig);
     }
 }
