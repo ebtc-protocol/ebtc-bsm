@@ -39,7 +39,7 @@ contract Deployer is Script, Ownable {
     * @param config A DeploymentConfig with the needed information for deployment.
     */
     function deploy(DeploymentConfig calldata config) external onlyOwner {
-        vm.startBroadcast();//TODO include PK
+        vm.startBroadcast();
         // Deploy Observer contract
         ActivePoolObserver observer = new ActivePoolObserver(config.observer);
 
