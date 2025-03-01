@@ -48,7 +48,7 @@ contract Deployer is Script, Ownable {
 
         // Deploy Constrains contracts
         OraclePriceConstraint oraclePriceConstraint = new OraclePriceConstraint(
-            adapter,
+            address(adapter),
             config.authority
         );
 
