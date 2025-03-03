@@ -47,10 +47,13 @@ contract DeployerTests is Test {
         // ContractsDeployed event is anonymous
         assertEq(entries[0].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Oracle constrain
         assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Rate constrain
-        //assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Deployer
-        assertEq(entries[1].topics[0], keccak256("OwnershipTransferred(address,address)"));// Source: BSM Deployer
-        assertEq(entries[1].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: BSM
-        assertEq(entries[1].topics[0], keccak256("ContractDeployed(address,address)"));// Source: BSM Deployer
+        assertEq(entries[2].emitter, address(script));// Source: Deployer anonymous event
+        assertEq(entries[3].topics[0], keccak256("OwnershipTransferred(address,address)"));// Source: BSM Deployer
+        assertEq(entries[4].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: BSM
+        assertEq(entries[5].topics[0], keccak256("AuthorityUpdated(address,address)"));// Source: Escrow
+        assertEq(entries[6].topics[0], keccak256("Approval(address,address,uint256)"));// Source ASSET_TOKEN.forceApprove, called from Escrow constructorASSET_TOKEN.forceApprove
+        assertEq(entries[7].topics[0], keccak256("Initialized(uint64)"));// Source: BSM.initialize
+        assertEq(entries[8].topics[0], keccak256("ContractDeployed(address,address)"));// Source: BSM Deployer.deploy
 
     }
 
