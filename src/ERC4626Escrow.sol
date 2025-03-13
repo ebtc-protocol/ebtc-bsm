@@ -129,7 +129,15 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
     /// @notice Prepares the contract for migration by redeeming all shares from the external vault
     function _beforeMigration() internal override {
-        EXTERNAL_VAULT.redeem(EXTERNAL_VAULT.balanceOf(address(this)), address(this), address(this));
+        uint256 shares = EXTERNAL_VAULT.balanceOf(address(this));
+        if (shares > 0) {
+            EXTERNAL_VAULT.redeem(shares, address(this), address(this));
+        }
+    }
+
+    function _claimToken(address token, uint256 amount) internal override {
+        require(token != address(EXTERNAL_VAULT));
+        super._claimToken(token, amount);
     }
 
     /// @notice Deposits assets into the external vault

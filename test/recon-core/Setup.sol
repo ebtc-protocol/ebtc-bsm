@@ -19,7 +19,8 @@ abstract contract Setup is BaseSetup, BSMBase, ActorManager, AssetManager {
     bool ALLOWS_REKT = bool(true);
 
     function setup() internal virtual override {
-        BSMBase.baseSetup();
+        // TODO: create a separate tester for tokens with different decimals
+        BSMBase.baseSetup(18);
 
         // New Actor, beside address(this)
         _addActor(second_actor);

@@ -4,10 +4,10 @@ pragma solidity ^0.8.25;
 import {AggregatorV3Interface} from "./Dependencies/AggregatorV3Interface.sol";
 
 /**
- * @title tBTCChainlinkAdapter contract
- * @notice Helps convert tBTC to BTC prices by combining two different oracle readings.
+ * @title AssetChainlinkAdapter contract
+ * @notice Helps convert asset to BTC prices by combining two different oracle readings.
  */
-contract tBTCChainlinkAdapter is AggregatorV3Interface {
+contract AssetChainlinkAdapter is AggregatorV3Interface {
     uint8 public constant override decimals = 18;
     uint256 public constant override version = 1;
 
@@ -19,36 +19,40 @@ contract tBTCChainlinkAdapter is AggregatorV3Interface {
     int256 internal constant ADAPTER_PRECISION = int256(10 ** decimals);
 
     /**
-     * @notice Price feed for (TBTC / USD) pair
+     * @notice Price feed for (ASSET / USD) pair (asset = tBTC, cbBTC etc.)
      */
-    AggregatorV3Interface public immutable TBTC_USD_CL_FEED;
+    AggregatorV3Interface public immutable ASSET_USD_CL_FEED;
 
     /**
      * @notice Price feed for (BTC / USD) pair
      */
     AggregatorV3Interface public immutable BTC_USD_CL_FEED;
 
-    int256 internal immutable TBTC_USD_PRECISION;
+    /// @notice Specifies if the price of this adapter should be inverted (BTC/ASSET instead of ASSET/BTC)
+    bool public immutable INVERTED;
+
+    int256 internal immutable ASSET_USD_PRECISION;
     int256 internal immutable BTC_USD_PRECISION;
 
     /**
      * @notice Contract constructor
-     * @param _tBtcUsdClFeed AggregatorV3Interface contract feed for tBTC -> USD
+     * @param _assetUsdClFeed AggregatorV3Interface contract feed for Asset -> USD
      * @param _btcUsdClFeed AggregatorV3Interface contract feed for BTC -> USD
      */
-    constructor(AggregatorV3Interface _tBtcUsdClFeed, AggregatorV3Interface _btcUsdClFeed) {
-        TBTC_USD_CL_FEED = AggregatorV3Interface(_tBtcUsdClFeed);
+    constructor(AggregatorV3Interface _assetUsdClFeed, AggregatorV3Interface _btcUsdClFeed, bool _inverted) {
+        ASSET_USD_CL_FEED = AggregatorV3Interface(_assetUsdClFeed);
         BTC_USD_CL_FEED = AggregatorV3Interface(_btcUsdClFeed);
+        INVERTED = _inverted;
 
-        require(TBTC_USD_CL_FEED.decimals() <= MAX_DECIMALS);
+        require(ASSET_USD_CL_FEED.decimals() <= MAX_DECIMALS);
         require(BTC_USD_CL_FEED.decimals() <= MAX_DECIMALS);
 
-        TBTC_USD_PRECISION = int256(10 ** TBTC_USD_CL_FEED.decimals());
+        ASSET_USD_PRECISION = int256(10 ** ASSET_USD_CL_FEED.decimals());
         BTC_USD_PRECISION = int256(10 ** BTC_USD_CL_FEED.decimals());
     }
 
     function description() external view returns (string memory) {
-        return "tBTC/BTC Chainlink Adapter";
+        return "ASSET/BTC Chainlink Adapter";
     }
     /** @notice returns the smallest uint256 out of the 2 parameters
     * @param _a first number to compare
@@ -58,11 +62,17 @@ contract tBTCChainlinkAdapter is AggregatorV3Interface {
         return _a < _b ? _a : _b;
     }
 
-    /// @dev Uses the prices from the tBtc feed and the BTC feed to compute tBTC->BTC
-    function _convertAnswer(int256 btcUsdPrice, int256 tBtcUsdPrice) private view returns (int256) {
-        return
-            (btcUsdPrice * TBTC_USD_PRECISION * ADAPTER_PRECISION) / 
-            (BTC_USD_PRECISION * tBtcUsdPrice);
+    /// @dev Uses the prices from the asset feed and the BTC feed to compute ASSET->BTC
+    function _convertAnswer(int256 btcUsdPrice, int256 assetUsdPrice) private view returns (int256) {
+        if (INVERTED) {
+            return
+                (btcUsdPrice * ASSET_USD_PRECISION * ADAPTER_PRECISION) / 
+                (BTC_USD_PRECISION * assetUsdPrice);
+        } else {
+            return
+                (assetUsdPrice * BTC_USD_PRECISION * ADAPTER_PRECISION) / 
+                (ASSET_USD_PRECISION * btcUsdPrice);
+        }
     }
 
     function _latestRoundData(
@@ -102,10 +112,10 @@ contract tBTCChainlinkAdapter is AggregatorV3Interface {
             uint80 answeredInRound
         )
     {
-        (int256 tBtcUsdPrice, uint256 tBtcUsdUpdatedAt) = _latestRoundData(TBTC_USD_CL_FEED);
+        (int256 assetUsdPrice, uint256 assetUsdUpdatedAt) = _latestRoundData(ASSET_USD_CL_FEED);
         (int256 btcUsdPrice, uint256 btcUsdUpdatedAt) = _latestRoundData(BTC_USD_CL_FEED);
 
-        updatedAt = _min(tBtcUsdUpdatedAt, btcUsdUpdatedAt);
-        answer = _convertAnswer(btcUsdPrice, tBtcUsdPrice);
+        updatedAt = _min(assetUsdUpdatedAt, btcUsdUpdatedAt);
+        answer = _convertAnswer(btcUsdPrice, assetUsdPrice);
     }
 }

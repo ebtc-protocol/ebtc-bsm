@@ -157,4 +157,16 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     function claimProfit() external requiresAuth {
         _claimProfit();
     }
+
+    function _claimToken(address token, uint256 amount) internal virtual {
+        require(token != address(ASSET_TOKEN));
+        if (amount > 0) {
+            IERC20(token).safeTransfer(FEE_RECIPIENT, amount);
+        }
+    }
+
+    /// @notice Claim reward tokens and/or other tokens sent to this constract
+    function claimToken(address token, uint256 amount) external requiresAuth {
+        _claimToken(token, amount);
+    }
 }

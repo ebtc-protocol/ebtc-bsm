@@ -5,6 +5,7 @@ import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
@@ -17,6 +18,8 @@ import {IEscrow} from "./Dependencies/IEscrow.sol";
 */
 contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     using SafeERC20 for IERC20;
+
+    uint256 internal immutable ASSET_TOKEN_PRECISION;
 
     /// @notice Basis points constant for percentage calculations
     uint256 public constant BPS = 10000;
@@ -81,6 +84,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         require(_governance != address(0));
 
         ASSET_TOKEN = IERC20(_assetToken);
+        ASSET_TOKEN_PRECISION = 10 ** ERC20(_assetToken).decimals();
+        require(ASSET_TOKEN_PRECISION <= 1e18);
         oraclePriceConstraint = IMintingConstraint(_oraclePriceConstraint);
         rateLimitingConstraint = IMintingConstraint(_rateLimitingConstraint);
         EBTC_TOKEN = IEbtcToken(_ebtcToken);
@@ -96,16 +101,16 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         escrow = IEscrow(_escrow);
     }
 
-    /** @notice Calculates the fee for buying eBTC
-    * @param _amount Amount of eBTC to buy
+    /** @notice Calculates the fee for buying asset tokens
+    * @param _amount Amount of asset tokens to buy
     * @return Fee amount
     */
     function _feeToBuy(uint256 _amount) private view returns (uint256) {
         return (_amount * feeToBuyBPS) / BPS;
     }
 
-    /** @notice Calculates the fee for selling eBTC
-    * @param _amount Amount of eBTC to sell
+    /** @notice Calculates the fee for selling asset tokens
+    * @param _amount Amount of asset tokens to sell
     * @return Fee amount
     */
     function _feeToSell(uint256 _amount) private view returns (uint256) {
@@ -113,11 +118,19 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         return (_amount * fee) / (fee + BPS);
     }
 
+    function _toAssetPrecision(uint256 _amount) private view returns (uint256)  {
+        return _amount * ASSET_TOKEN_PRECISION / 1e18;
+    }
+
+    function _toEbtcPrecision(uint256 _amount) private view returns (uint256) {
+        return _amount * 1e18 / ASSET_TOKEN_PRECISION;
+    }
+
     function _previewSellAsset(
         uint256 _assetAmountIn,
         uint256 _feeAmount
     ) private view returns (uint256 _ebtcAmountOut) {
-        _ebtcAmountOut = _assetAmountIn - _feeAmount;
+        _ebtcAmountOut = _toEbtcPrecision(_assetAmountIn - _feeAmount);
         _checkMintingConstraints(_ebtcAmountOut);
     }
 
@@ -125,8 +138,10 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _ebtcAmountIn,
         uint256 _feeAmount
     ) private view returns (uint256 _assetAmountOut) {
-        _checkTotalAssetsDeposited(_ebtcAmountIn);
-        _assetAmountOut = escrow.previewWithdraw(_ebtcAmountIn) - _feeAmount;
+        uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
+        uint256 feeAmountInAssetPrecision = _toAssetPrecision(_feeAmount);
+        _checkTotalAssetsDeposited(ebtcAmountInAssetPrecision);
+        _assetAmountOut = escrow.previewWithdraw(ebtcAmountInAssetPrecision) - feeAmountInAssetPrecision;
     }
 
     /** @notice This internal function verifies that the escrow has sufficient assets deposited to cover an amount to buy.
@@ -170,15 +185,18 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
     /// @notice Internal sellAsset function with an expected fee amount
     function _sellAsset(
-        uint256 _assetAmountIn,
+        uint256 _assetAmountIn, // asset precision
         address _recipient,
-        uint256 _feeAmount,
-        uint256 _minOutAmount
-    ) internal returns (uint256 _ebtcAmountOut) {
+        uint256 _feeAmount,   // asset precision
+        uint256 _minOutAmount // ebtc precision
+    ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
-    
-        _ebtcAmountOut = _assetAmountIn - _feeAmount;
+
+        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;  // 1e8
+
+        // Convert _assetAmountIn to ebtc precision (1e18)
+        _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
 
         _checkMintingConstraints(_ebtcAmountOut);
 
@@ -186,9 +204,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         ASSET_TOKEN.safeTransferFrom(
             msg.sender,
             address(escrow),
-            _assetAmountIn
+            _assetAmountIn // asset precision
         );
-        escrow.onDeposit(_ebtcAmountOut); // ebtcMinted = _assetAmountIn - fee
+        escrow.onDeposit(assetAmountInNoFee); // assetAmountInNoFee = _assetAmountIn - fee (asset precision)
 
         // slippage check
         if (_ebtcAmountOut < _minOutAmount) {
@@ -204,25 +222,30 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
     /// @notice Internal buyAsset function with an expected fee amount
     function _buyAsset(
-        uint256 _ebtcAmountIn,
+        uint256 _ebtcAmountIn, // ebtc precision
         address _recipient,
-        uint256 _feeAmount,
-        uint256 _minOutAmount
-    ) internal returns (uint256 _assetAmountOut) {
+        uint256 _feeAmount,    // ebtc precision
+        uint256 _minOutAmount  // asset precision
+    ) internal returns (uint256 _assetAmountOut) { // asset precision
         if (_ebtcAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
 
-        _checkTotalAssetsDeposited(_ebtcAmountIn);
+        uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
+
+        if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
+
+        _checkTotalAssetsDeposited(ebtcAmountInAssetPrecision);
 
         EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
 
         totalMinted -= _ebtcAmountIn;
 
         uint256 redeemedAmount = escrow.onWithdraw(
-            _ebtcAmountIn
+            ebtcAmountInAssetPrecision
         );
+        uint256 feeAmountInAssetPrecision = _toAssetPrecision(_feeAmount);
 
-        _assetAmountOut = redeemedAmount - _feeAmount;
+        _assetAmountOut = redeemedAmount - feeAmountInAssetPrecision; // asset precision
 
         // slippage check
         if (_assetAmountOut < _minOutAmount) {
@@ -249,7 +272,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewSellAsset(
         uint256 _assetAmountIn
-    ) external returns (uint256 _ebtcAmountOut) {
+    ) external view returns (uint256 _ebtcAmountOut) {
         return _previewSellAsset(_assetAmountIn, _feeToSell(_assetAmountIn));
     }
 
@@ -260,7 +283,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewBuyAsset(
         uint256 _ebtcAmountIn
-    ) external returns (uint256 _assetAmountOut) {
+    ) external view returns (uint256 _assetAmountOut) {
         return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_ebtcAmountIn));
     }
 
