@@ -10,6 +10,10 @@ contract EscrowTests is BSMTestBase {
     function setUp() public virtual override {
         super.setUp();
         mockToken = new MockAssetToken(18);
+        
+        // Sending tokens
+        mockToken.mint(address(escrow), amount);
+        assertEq(mockToken.balanceOf(address(escrow)), amount);
     }
 
     function testClaimToken() public {
@@ -28,10 +32,6 @@ contract EscrowTests is BSMTestBase {
         vm.expectRevert();
         vm.prank(techOpsMultisig);
         escrow.claimToken(address(mockToken), amount);
-
-        // Sending tokens
-        mockToken.mint(address(escrow), amount);
-        assertEq(mockToken.balanceOf(address(escrow)), amount);
 
         // Try to withdraw greater amount
         vm.expectRevert();
