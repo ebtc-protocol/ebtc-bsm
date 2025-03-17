@@ -14,7 +14,7 @@ import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
-    ERC20Mock internal mockAssetToken;
+    MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
     ERC4626Mock internal externalVault;
     ERC4626Escrow internal escrow;
