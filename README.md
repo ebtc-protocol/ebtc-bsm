@@ -128,4 +128,4 @@ The trophy [`test_inlined_withdrawProfitTest_1`](https://github.com/ebtc-protoco
 
 And `echidna` can be used to reproduce more scenarios
 
-We would highly appreciate flagging losses that reach at least 1 ** decimals of asset, as losses below that would not be worth spending the gas to recoup them
+We would highly appreciate flagging losses that reach at least 10 ** decimals of asset, as losses below that would not be worth spending the gas to recoup them
