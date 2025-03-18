@@ -16,11 +16,12 @@ abstract contract Setup is BaseSetup, BSMBase, ActorManager, AssetManager {
     bool hasMigrated; // TODO: Check this again
 
     // CONFIG
-    bool ALLOWS_REKT = bool(true);
+    bool constant ALLOWS_REKT = bool(true);
+    uint8 constant DECIMALS = uint8(8);
 
     function setup() internal virtual override {
         // TODO: create a separate tester for tokens with different decimals
-        BSMBase.baseSetup(18);
+        BSMBase.baseSetup(DECIMALS);
 
         // New Actor, beside address(this)
         _addActor(second_actor);
