@@ -52,7 +52,11 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
     }
 
     function description() external view returns (string memory) {
-        return "ASSET/BTC Chainlink Adapter";
+        if (INVERTED) {
+            return "BTC/ASSET Chainlink Adapter";
+        } else {
+            return "ASSET/BTC Chainlink Adapter";
+        }
     }
     /** @notice returns the smallest uint256 out of the 2 parameters
     * @param _a first number to compare
