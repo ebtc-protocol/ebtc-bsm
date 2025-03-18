@@ -145,10 +145,11 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     /** @notice This internal function verifies that the escrow has sufficient assets deposited to cover an amount to buy.
-    * @param amountToBuy The amount of assets that is intended to be bought.
+    * @param amountToBuy The amount of assets that is intended to be bought (in asset precision)
     */
     function _checkTotalAssetsDeposited(uint256 amountToBuy) private view {
         // ebtc to asset price is treated as 1 for buyAsset
+        /// @dev totalAssetsDeposited is in asset precision
         uint256 totalAssetsDeposited = escrow.totalAssetsDeposited();
         if (amountToBuy > totalAssetsDeposited) {
             revert InsufficientAssetTokens(amountToBuy, totalAssetsDeposited);
@@ -193,7 +194,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
 
-        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;  // 1e8
+        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
@@ -206,7 +207,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
             address(escrow),
             _assetAmountIn // asset precision
         );
-        escrow.onDeposit(assetAmountInNoFee); // assetAmountInNoFee = _assetAmountIn - fee (asset precision)
+        // assetAmountInNoFee = _assetAmountIn - _feeAmount (asset precision)
+        escrow.onDeposit(assetAmountInNoFee);
 
         // slippage check
         if (_ebtcAmountOut < _minOutAmount) {
