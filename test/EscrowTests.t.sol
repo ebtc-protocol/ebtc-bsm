@@ -29,9 +29,10 @@ contract EscrowTests is BSMTestBase {
         escrow.claimToken(address(mockToken), amount);
 
         // if no token in contract
+        MockAssetToken diffToken = new MockAssetToken(18);
         vm.expectRevert();
         vm.prank(techOpsMultisig);
-        escrow.claimToken(address(mockToken), amount);
+        escrow.claimToken(address(diffToken), amount);
 
         // Try to withdraw greater amount
         vm.expectRevert();
