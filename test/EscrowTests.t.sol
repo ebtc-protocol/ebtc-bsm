@@ -6,6 +6,7 @@ import "./mocks/MockAssetToken.sol";
 
 contract EscrowTests is BSMTestBase {
     MockAssetToken internal mockToken;
+    uint256 amount = 1e18;
 
     function setUp() public virtual override {
         super.setUp();
@@ -17,7 +18,6 @@ contract EscrowTests is BSMTestBase {
     }
 
     function testClaimToken() public {
-        uint256 amount = 1e18;
         // if invalid token
         vm.expectRevert();
         vm.prank(techOpsMultisig);
