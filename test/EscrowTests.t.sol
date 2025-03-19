@@ -18,10 +18,14 @@ contract EscrowTests is BSMTestBase {
     }
 
     function testClaimToken() public {
-        // if invalid token
+        // if invalid tokens
         vm.expectRevert();
         vm.prank(techOpsMultisig);
-        escrow.claimToken(address(mockAssetToken), 1);
+        escrow.claimToken(address(mockAssetToken), 1);//asset token
+
+        vm.expectRevert();
+        vm.prank(techOpsMultisig);
+        escrow.claimToken(address(escrow.EXTERNAL_VAULT()), 1);//vault token
 
         // if no authorized user
         vm.expectRevert("Auth: UNAUTHORIZED");
