@@ -28,6 +28,9 @@ interface ITwapWeightedObserver {
     function PERIOD() external view returns (uint256);
 
     function getLatestAccumulator() external view returns (uint128);
+    function valueToTrack() external view returns (uint128);
 
     function getData() external view returns (PackedData memory);
+
+    function observe() external returns (uint256);
 }

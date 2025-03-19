@@ -10,4 +10,10 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     function setUp() public {
         setup();
     }
+
+    function test_manual_qa() public {
+        twapWeightedObserver_setValueAndUpdate(44265688792424285613);
+        vm.warp(block.timestamp + 24 days);
+        property_observe_always_same();
+    }
 }
