@@ -21,11 +21,11 @@ contract EscrowTests is BSMTestBase {
         // if invalid tokens
         vm.expectRevert();
         vm.prank(techOpsMultisig);
-        escrow.claimToken(address(mockAssetToken), 1);//asset token
+        escrow.claimToken(address(mockAssetToken), 1);// asset token
 
         vm.expectRevert();
         vm.prank(techOpsMultisig);
-        escrow.claimToken(address(escrow.EXTERNAL_VAULT()), 1);//vault token
+        escrow.claimToken(address(escrow.EXTERNAL_VAULT()), 1);// vault token
 
         // if no authorized user
         vm.expectRevert("Auth: UNAUTHORIZED");
