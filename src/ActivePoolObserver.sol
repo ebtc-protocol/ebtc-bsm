@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {ITwapWeightedObserver} from "./Dependencies/ITwapWeightedObserver.sol";
-import {console2} from "forge-std/console2.sol";
+
 /**
  * @title ActivePoolObserver
  * @notice Observes the average value of a pool using a TWAP (Time-Weighted Average Price) mechanism.
@@ -31,8 +31,7 @@ contract ActivePoolObserver {
      * @return latestAcc The latest accumulator value from the observer.
      */
     function _calcUpdatedAvg(ITwapWeightedObserver.PackedData memory data) internal view returns (uint128, uint128) {
-        uint128 latestAcc = data.accumulator + (OBSERVER.valueToTrack() * (uint64(block.timestamp) - data.lastAccrued));
-
+        uint128 latestAcc = OBSERVER.getLatestAccumulator();
         uint128 avgValue = (latestAcc - data.observerCumuVal) /
             (uint64(block.timestamp) - data.lastObserved);
         return (avgValue, latestAcc);
