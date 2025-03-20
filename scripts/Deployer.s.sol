@@ -44,7 +44,7 @@ contract Deployer is Script, Ownable {
         ActivePoolObserver observer = new ActivePoolObserver(config.observer);
 
         // Deploy ChainlinkAdapter contract
-        AssetChainlinkAdapter adapter = new AssetChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
+        AssetChainlinkAdapter adapter = new AssetChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed, false);
 
         // Deploy Constrains contracts
         OraclePriceConstraint oraclePriceConstraint = new OraclePriceConstraint(
