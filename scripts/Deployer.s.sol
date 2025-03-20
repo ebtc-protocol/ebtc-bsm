@@ -9,7 +9,7 @@ import {OraclePriceConstraint} from "../src/OraclePriceConstraint.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RateLimitingConstraint} from "../src/RateLimitingConstraint.sol";
 import {Script} from "forge-std/Script.sol";
-import {tBTCChainlinkAdapter, AggregatorV3Interface} from "../src/tBTCChainlinkAdapter.sol";
+import {AssetChainlinkAdapter, AggregatorV3Interface} from "../src/AssetChainlinkAdapter.sol";
 
 /**
 * @notice Deployer contract for the whole bsm system
@@ -44,7 +44,7 @@ contract Deployer is Script, Ownable {
         ActivePoolObserver observer = new ActivePoolObserver(config.observer);
 
         // Deploy ChainlinkAdapter contract
-        tBTCChainlinkAdapter adapter = new tBTCChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
+        AssetChainlinkAdapter adapter = new AssetChainlinkAdapter(config.tBtcUsdClFeed, config.btcUsdClFeed);
 
         // Deploy Constrains contracts
         OraclePriceConstraint oraclePriceConstraint = new OraclePriceConstraint(
