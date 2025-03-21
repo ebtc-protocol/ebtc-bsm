@@ -52,12 +52,16 @@ contract BSMBase {
         return units * (10 ** mockEbtcToken.decimals());
     }
 
-    function _mintAssetToken(address to, uint256 units) internal {
-        mockAssetToken.mint(to, _getAssetTokenAmount(units));
+    function _assetTokenPrecision() internal view returns (uint256) {
+        return (10 ** mockAssetToken.decimals());
     }
 
-    function _mintEbtc(address to, uint256 units) internal {
-        mockEbtcToken.mint(to, _getEbtcAmount(units));
+    function _mintAssetToken(address to, uint256 amount) internal {
+        mockAssetToken.mint(to, amount);
+    }
+
+    function _mintEbtc(address to, uint256 amount) internal {
+        mockEbtcToken.mint(to, amount);
     }
 
     function baseSetup(uint8 assetDecimals) internal virtual {

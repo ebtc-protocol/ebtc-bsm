@@ -7,15 +7,16 @@ import {RateLimitingConstraint} from"../src/RateLimitingConstraint.sol";
 import {IMintingConstraint} from "../src/Dependencies/IMintingConstraint.sol";
 
 contract SellAssetTests is BSMTestBase {
-    function testSellAssetSuccess(uint256 numTokens) public {
+    function testSellAssetSuccess(uint256 numTokens, uint256 fraction) public {
         numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
 
-        uint256 ebtcAmount = _getEbtcAmount(numTokens);
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens);
+        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
 
-        _mintAssetToken(testMinter, numTokens);
+        _mintAssetToken(testMinter, assetTokenAmount);
 
-        _checkAssetTokenBalance(testMinter, numTokens);
+        _checkAssetTokenBalance(testMinter, assetTokenAmount);
         _checkEbtcBalance(testMinter, 0);
 
         uint256 fee = assetTokenAmount * bsmTester.feeToBuyBPS() / (bsmTester.feeToBuyBPS() + bsmTester.BPS());
@@ -30,8 +31,8 @@ contract SellAssetTests is BSMTestBase {
         assertEq(escrow.totalAssetsDeposited(), assetTokenAmount);
 
         _checkAssetTokenBalance(testMinter, 0);
-        _checkEbtcBalance(testMinter, numTokens);
-        _checkAssetTokenBalance(address(bsmTester.escrow()), numTokens);
+        _checkEbtcBalance(testMinter, ebtcAmount);
+        _checkAssetTokenBalance(address(bsmTester.escrow()), assetTokenAmount);
         _totalMintedEqTotalAssetsDeposited();
     }
 
@@ -150,7 +151,7 @@ contract SellAssetTests is BSMTestBase {
         bsmTester.sellAsset(1e18, testMinter, 0);
     }
 
-    function testSellAssetFailPaused(uint256 numTokens) public {
+    function testSellAssetFailPaused(uint256 numTokens, uint256 fraction) public {
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         bsmTester.pause();
@@ -169,7 +170,7 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.unpause();
 
-        testSellAssetSuccess(numTokens);
+        testSellAssetSuccess(numTokens, fraction);
     }
 
     function testSellAssetFailSlippageCheck() public {
