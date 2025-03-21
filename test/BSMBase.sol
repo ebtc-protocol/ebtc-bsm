@@ -9,6 +9,7 @@ import "../src/Dependencies/Governor.sol";
 import "../src/EbtcBSM.sol";
 import "../src/OraclePriceConstraint.sol";
 import "../src/RateLimitingConstraint.sol";
+import "../src/DummyConstraint.sol";
 import "../src/ERC4626Escrow.sol";
 import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
@@ -71,6 +72,7 @@ contract BSMBase {
             address(mockAssetToken),
             address(oraclePriceConstraint),
             address(rateLimitingConstraint),
+            address(new DummyConstraint()),
             address(mockEbtcToken),
             address(authority)
         );
@@ -162,7 +164,7 @@ contract BSMBase {
         setRoleCapability(
             15,
             address(escrow),
-            escrow.claimToken.selector,
+            escrow.claimTokens.selector,
             true
         );
         setRoleCapability(
