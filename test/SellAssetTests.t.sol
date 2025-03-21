@@ -7,25 +7,32 @@ import {RateLimitingConstraint} from"../src/RateLimitingConstraint.sol";
 import {IMintingConstraint} from "../src/Dependencies/IMintingConstraint.sol";
 
 contract SellAssetTests is BSMTestBase {
-    function testSellAssetSuccess() public {
-        assertEq(mockAssetToken.balanceOf(testMinter), 10e18);
-        assertEq(mockEbtcToken.balanceOf(testMinter), 0);
+    function testSellAssetSuccess(uint256 numTokens) public {
+        numTokens = bound(numTokens, 1, 1000000000);
 
-        uint256 fee = 1e18 * bsmTester.feeToBuyBPS() / (bsmTester.feeToBuyBPS() + bsmTester.BPS());
+        uint256 ebtcAmount = _getEbtcAmount(numTokens);
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens);
+
+        _mintAssetToken(testMinter, numTokens);
+
+        _checkAssetTokenBalance(testMinter, numTokens);
+        _checkEbtcBalance(testMinter, 0);
+
+        uint256 fee = assetTokenAmount * bsmTester.feeToBuyBPS() / (bsmTester.feeToBuyBPS() + bsmTester.BPS());
 
         vm.expectEmit();
-        emit IEbtcBSM.AssetSold(1e18, 1e18, fee);
+        emit IEbtcBSM.AssetSold(assetTokenAmount, ebtcAmount, fee);
 
         vm.prank(testMinter);
-        assertEq(bsmTester.sellAsset(1e18, testMinter, 0), 1e18);
-        
-        assertEq(mockAssetToken.balanceOf(testMinter), 9e18);
-        assertEq(mockEbtcToken.balanceOf(testMinter), 1e18);
+        assertEq(bsmTester.sellAsset(assetTokenAmount, testMinter, 0), ebtcAmount);
 
-        assertEq(
-            mockAssetToken.balanceOf(address(bsmTester.escrow())),
-            1e18
-        );
+        assertEq(bsmTester.totalMinted(), ebtcAmount);
+        assertEq(escrow.totalAssetsDeposited(), assetTokenAmount);
+
+        _checkAssetTokenBalance(testMinter, 0);
+        _checkEbtcBalance(testMinter, numTokens);
+        _checkAssetTokenBalance(address(bsmTester.escrow()), numTokens);
+        _totalMintedEqTotalAssetsDeposited();
     }
 
     function testSellAssetFeeSuccess() public {
@@ -67,6 +74,14 @@ contract SellAssetTests is BSMTestBase {
 
         vm.prank(testAuthorizedUser);
         assertEq(bsmTester.sellAssetNoFee(1.01e18, testAuthorizedUser, 0), 1.01e18);
+    }
+
+    function testSellTokenFailureZeroAmount() public {
+
+    }
+
+    function testSellTokenFailureInvalidRecipient() public {
+
     }
 
     function testSellAssetFailAboveCap() public {
@@ -135,7 +150,7 @@ contract SellAssetTests is BSMTestBase {
         bsmTester.sellAsset(1e18, testMinter, 0);
     }
 
-    function testSellAssetFailPaused() public {
+    function testSellAssetFailPaused(uint256 numTokens) public {
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         bsmTester.pause();
@@ -154,7 +169,7 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.unpause();
 
-        testSellAssetSuccess();
+        testSellAssetSuccess(numTokens);
     }
 
     function testSellAssetFailSlippageCheck() public {

@@ -11,7 +11,19 @@ contract BSMTestBase is BSMBase, Test {
         bsmTester.initialize(address(escrow));
     }
 
+    function _checkAssetTokenBalance(address addr, uint256 units) internal {
+        assertEq(mockAssetToken.balanceOf(addr), _getAssetTokenAmount(units));
+    }
+
+    function _checkEbtcBalance(address addr, uint256 units) internal {
+        assertEq(mockEbtcToken.balanceOf(addr), _getEbtcAmount(units));
+    }
+
+    function _totalMintedEqTotalAssetsDeposited() internal {
+        assertEq(bsmTester.totalMinted(), escrow.totalAssetsDeposited() * 1e18 / (10 ** mockAssetToken.decimals()));
+    }
+
     function setUp() public virtual {
-        BSMBase.baseSetup(18);
+        BSMBase.baseSetup(NUM_DECIMALS);
     }
 }

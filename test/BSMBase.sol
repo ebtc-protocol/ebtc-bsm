@@ -15,6 +15,8 @@ import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
+    uint8 constant internal NUM_DECIMALS = 8;
+
     MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
     ERC4626Mock internal externalVault;
@@ -42,8 +44,20 @@ contract BSMBase {
         _;
     }
 
-    function _mintAssetToken(address to, uint256 units) private {
-        mockAssetToken.mint(to, units * (units ** mockAssetToken.decimals()));
+    function _getAssetTokenAmount(uint256 units) internal returns (uint256) {
+        return units * (10 ** mockAssetToken.decimals());
+    }
+
+    function _getEbtcAmount(uint256 units) internal returns (uint256) {
+        return units * (10 ** mockEbtcToken.decimals());
+    }
+
+    function _mintAssetToken(address to, uint256 units) internal {
+        mockAssetToken.mint(to, _getAssetTokenAmount(units));
+    }
+
+    function _mintEbtc(address to, uint256 units) internal {
+        mockEbtcToken.mint(to, _getEbtcAmount(units));
     }
 
     function baseSetup(uint8 assetDecimals) internal virtual {
@@ -88,25 +102,16 @@ contract BSMBase {
         bsmTester.initialize(address(escrow));
 
         // create initial ebtc supply
-        mockEbtcToken.mint(defaultGovernance, 50e18);
+        mockEbtcToken.mint(defaultGovernance, 100000000000e18);
         mockAssetOracle.setPrice(1e18);
         mockAssetOracle.setUpdateTime(block.timestamp);
 
         vm.prank(testMinter);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
-
-        _mintAssetToken(testMinter, 10);
-
         vm.prank(testAuthorizedUser);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
         vm.prank(testAuthorizedUser);
         mockEbtcToken.approve(address(bsmTester), type(uint256).max);
-        
-        _mintAssetToken(testAuthorizedUser, 10);
-        mockEbtcToken.mint(testAuthorizedUser, 10e18);
-
-        vm.prank(testBuyer);
-        mockEbtcToken.mint(testBuyer, 10e18);
 
         // give eBTC minter and burner roles to BSM tester
         setUserRole(address(bsmTester), 1, true);
