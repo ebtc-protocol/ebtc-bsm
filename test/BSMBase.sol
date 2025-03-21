@@ -2,7 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "forge-std/Test.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {MockAssetOracle} from "./mocks/MockAssetOracle.sol";
 import {MockActivePoolObserver} from "./mocks/MockActivePoolObserver.sol";
@@ -10,11 +9,13 @@ import "../src/Dependencies/Governor.sol";
 import "../src/EbtcBSM.sol";
 import "../src/OraclePriceConstraint.sol";
 import "../src/RateLimitingConstraint.sol";
+import "../src/DummyConstraint.sol";
 import "../src/ERC4626Escrow.sol";
+import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
-    ERC20Mock internal mockAssetToken;
+    MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
     ERC4626Mock internal externalVault;
     ERC4626Escrow internal escrow;
@@ -41,11 +42,15 @@ contract BSMBase {
         _;
     }
 
-    function baseSetup() internal virtual {
+    function _mintAssetToken(address to, uint256 units) private {
+        mockAssetToken.mint(to, units * (units ** mockAssetToken.decimals()));
+    }
+
+    function baseSetup(uint8 assetDecimals) internal virtual {
         defaultGovernance = vm.addr(0x123456);
         defaultFeeRecipient = vm.addr(0x234567);
         authority = new Governor(defaultGovernance);
-        mockAssetToken = new ERC20Mock();
+        mockAssetToken = new MockAssetToken(assetDecimals);
         mockEbtcToken = new ERC20Mock();
         mockActivePoolObserver = new MockActivePoolObserver(mockEbtcToken);
         externalVault = new ERC4626Mock(address(mockAssetToken));
@@ -67,6 +72,7 @@ contract BSMBase {
             address(mockAssetToken),
             address(oraclePriceConstraint),
             address(rateLimitingConstraint),
+            address(new DummyConstraint()),
             address(mockEbtcToken),
             address(authority)
         );
@@ -88,14 +94,15 @@ contract BSMBase {
 
         vm.prank(testMinter);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
-        mockAssetToken.mint(testMinter, 10e18);
+
+        _mintAssetToken(testMinter, 10);
 
         vm.prank(testAuthorizedUser);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
         vm.prank(testAuthorizedUser);
         mockEbtcToken.approve(address(bsmTester), type(uint256).max);
         
-        mockAssetToken.mint(testAuthorizedUser, 10e18);
+        _mintAssetToken(testAuthorizedUser, 10);
         mockEbtcToken.mint(testAuthorizedUser, 10e18);
 
         vm.prank(testBuyer);
@@ -152,6 +159,12 @@ contract BSMBase {
             15,
             address(escrow),
             escrow.claimProfit.selector,
+            true
+        );
+        setRoleCapability(
+            15,
+            address(escrow),
+            escrow.claimTokens.selector,
             true
         );
         setRoleCapability(

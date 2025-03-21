@@ -20,6 +20,7 @@ contract BSMDeployer is Ownable {
         address _assetToken,
         address _oraclePriceConstraint,
         address _rateLimitingConstraint,
+        address _buyAssetConstraint,
         address _ebtcToken,
         address _feeRecipient,
         address _governance,
@@ -29,6 +30,7 @@ contract BSMDeployer is Ownable {
             address(_assetToken),
             address(_oraclePriceConstraint),
             address(_rateLimitingConstraint),
+            address(_buyAssetConstraint),
             address(_ebtcToken),
             address(_governance)
         );

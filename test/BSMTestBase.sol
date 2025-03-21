@@ -12,6 +12,6 @@ contract BSMTestBase is BSMBase, Test {
     }
 
     function setUp() public virtual {
-        BSMBase.baseSetup();
+        BSMBase.baseSetup(18);
     }
 }
