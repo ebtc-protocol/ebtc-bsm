@@ -5,7 +5,7 @@ import {BaseEscrow} from "./BaseEscrow.sol";
 import {IERC4626Escrow} from "./Dependencies/IERC4626Escrow.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {console} from "forge-std/console.sol";//TODO remove
 /// @title ERC4626 Escrow Contract
 /// @notice This contract extends the BaseEscrow to interact with an ERC4626 compliant external vault for asset management
 /// and for additional yield opportunities.
@@ -112,13 +112,13 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     /// @return The previewed withdrawable amount
     function _previewWithdraw(uint256 _assetAmount) internal override view returns (uint256) {
         uint256 liquidBalance = super._totalBalance();        
-
+        
         if (_assetAmount > liquidBalance) {
             uint256 deficit;
             unchecked {
                 deficit = _assetAmount - liquidBalance;
             }
-
+            
             /// @dev using convertToShares + previewRedeem instead of previewWithdraw to round down
             uint256 shares = _clampShares(EXTERNAL_VAULT.convertToShares(deficit));
             return liquidBalance + (shares > 0 ? EXTERNAL_VAULT.previewRedeem(shares) : 0);

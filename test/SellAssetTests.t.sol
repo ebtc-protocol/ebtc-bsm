@@ -7,7 +7,7 @@ import {RateLimitingConstraint} from"../src/RateLimitingConstraint.sol";
 import {IMintingConstraint} from "../src/Dependencies/IMintingConstraint.sol";
 
 contract SellAssetTests is BSMTestBase {
-    function testSellAssetSuccess(uint256 numTokens, uint256 fraction) public {
+     function testSellAssetSuccess(uint256 numTokens, uint256 fraction) public {
         numTokens = bound(numTokens, 1, 1000000000);
         fraction = bound(fraction, 0, _assetTokenPrecision());
 
@@ -36,45 +36,57 @@ contract SellAssetTests is BSMTestBase {
         _totalMintedEqTotalAssetsDeposited();
     }
 
-    function testSellAssetFeeSuccess() public {
+    function testSellAssetFeeSuccess(uint256 numTokens, uint256 fraction) public {
+        numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
+
+        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        uint256 sellerBalance = 10 * assetTokenAmount;
+        _mintAssetToken(testMinter, sellerBalance);
         // 1% fee
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(100);
-
-        assertEq(mockAssetToken.balanceOf(testMinter), 10e18);
-
-        vm.expectEmit();
-        emit IEbtcBSM.AssetSold(1.01e18, 1e18, 0.01e18);
+        _checkAssetTokenBalance(testMinter, sellerBalance);
+        
+        uint256 fee = assetTokenAmount * bsmTester.feeToSellBPS() / (bsmTester.feeToSellBPS() + bsmTester.BPS());
+        uint256 resultAmount = assetTokenAmount - fee;
+        uint256 resultInEbtc = resultAmount * 1e18 / _assetTokenPrecision();
 
         vm.prank(testMinter);
-        assertEq(bsmTester.sellAsset(1.01e18, testMinter, 0), 1e18);
-
-        assertEq(mockAssetToken.balanceOf(testMinter), 8.99e18);
-
+        assertEq(bsmTester.sellAsset(assetTokenAmount, testMinter, 0), resultInEbtc);
+        _checkAssetTokenBalance(testMinter, sellerBalance - assetTokenAmount);
+        
         // escrow has user deposit (1e18) + fee(0.01e18) = 1.01e18
-        assertEq(
-            mockAssetToken.balanceOf(address(bsmTester.escrow())),
-            1.01e18
-        );
-        assertEq(escrow.feeProfit(), 0.01e18);
-        assertEq(escrow.totalAssetsDeposited(), 1e18);
+        _checkAssetTokenBalance(address(bsmTester.escrow()), assetTokenAmount);
+
+        assertEq(escrow.feeProfit(), fee);
+        assertEq(escrow.totalAssetsDeposited(), resultAmount);
 
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
 
-        assertEq(mockAssetToken.balanceOf(defaultFeeRecipient), 0.01e18);
+        _checkAssetTokenBalance(defaultFeeRecipient, fee);
         assertEq(escrow.feeProfit(), 0);
     }
 
-    function testSellAssetFeeAuthorizedUser() public {
+    function testSellAssetFeeAuthorizedUser(uint256 numTokens, uint256 fraction) public {
+        numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
+
+        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+
+        _mintAssetToken(testAuthorizedUser, assetTokenAmount);
+
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(100);
 
         vm.expectEmit();
-        emit IEbtcBSM.AssetSold(1.01e18, 1.01e18, 0);
+        emit IEbtcBSM.AssetSold(assetTokenAmount, ebtcAmount, 0);
 
         vm.prank(testAuthorizedUser);
-        assertEq(bsmTester.sellAssetNoFee(1.01e18, testAuthorizedUser, 0), 1.01e18);
+        assertEq(bsmTester.sellAssetNoFee(assetTokenAmount, testAuthorizedUser, 0), ebtcAmount);
     }
 
     function testSellTokenFailureZeroAmount() public {
@@ -85,25 +97,25 @@ contract SellAssetTests is BSMTestBase {
 
     }
 
-    function testSellAssetFailAboveCap() public {
+    function testSellAssetFailAboveCap(uint256 fraction) public {
         uint256 mintingCapBPS = rateLimitingConstraint.getMintingConfig(address(bsmTester)).relativeCapBPS;
-
-        uint256 amountToMint = (mockEbtcToken.totalSupply() *
-            (mintingCapBPS + 1)) / bsmTester.BPS();
         uint256 maxMint = (mockEbtcToken.totalSupply() *
             mintingCapBPS) / bsmTester.BPS();
 
+        uint256 amountToMint = maxMint + 1;
+        uint256 ebtcAmount = amountToMint * 1e18 / _assetTokenPrecision();
+        
         vm.prank(testMinter);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IMintingConstraint.MintingConstraintCheckFailed.selector, 
                 address(rateLimitingConstraint),
-                amountToMint,
+                ebtcAmount,
                 address(bsmTester),
                 abi.encodeWithSelector(
                     RateLimitingConstraint.AboveMintingCap.selector,
-                    amountToMint,
-                    bsmTester.totalMinted() + amountToMint,
+                    ebtcAmount,
+                    bsmTester.totalMinted() + ebtcAmount,
                     maxMint
                 )
             )
@@ -111,7 +123,15 @@ contract SellAssetTests is BSMTestBase {
         bsmTester.sellAsset(amountToMint, testMinter, 0);
     }
 
-    function testSellAssetFailBadPrice() public {
+    function testSellAssetFailBadPrice(uint256 numTokens, uint256 fraction) public {
+        numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
+
+        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+
+        _mintAssetToken(testMinter, assetTokenAmount);
+
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         oraclePriceConstraint.setMinPrice(9000);
@@ -122,12 +142,12 @@ contract SellAssetTests is BSMTestBase {
 
         // Drop price to 0.89
         mockAssetOracle.setPrice(0.89e18);
-
+        
         vm.expectRevert(
             abi.encodeWithSelector(
                 IMintingConstraint.MintingConstraintCheckFailed.selector,
                 address(oraclePriceConstraint),
-                1e18,
+                ebtcAmount,//must be in ebtc precision
                 address(bsmTester),
                 abi.encodeWithSelector(
                     OraclePriceConstraint.BelowMinPrice.selector, 
@@ -136,8 +156,9 @@ contract SellAssetTests is BSMTestBase {
                 )
             )
         );
+        
         vm.prank(testMinter);
-        bsmTester.sellAsset(1e18, testMinter, 0);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
     }
 
     function testSellAssetOracleTooOld() public {
@@ -173,18 +194,26 @@ contract SellAssetTests is BSMTestBase {
         testSellAssetSuccess(numTokens, fraction);
     }
 
-    function testSellAssetFailSlippageCheck() public {
+    function testSellAssetFailSlippageCheck(uint256 numTokens, uint256 fraction) public {
+        numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
+
+        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+
+        _mintAssetToken(testMinter, assetTokenAmount);
         // 1% fee
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(100);
 
         // TEST: fail if actual < expected
-        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.BelowExpectedMinOutAmount.selector, 1.01e18, 1e18));
+        uint256 realAmount = bsmTester.previewSellAsset(assetTokenAmount);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.BelowExpectedMinOutAmount.selector, realAmount * 2, realAmount));
         vm.prank(testMinter);
-        bsmTester.sellAsset(1.01e18, testMinter, 1.01e18);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, realAmount * 2);
 
         // TEST: pass if actual >= expected
         vm.prank(testMinter);
-        assertEq(bsmTester.sellAsset(1.01e18, testMinter, 1e18), 1e18);
+        assertEq(bsmTester.sellAsset(assetTokenAmount, testMinter, realAmount), realAmount);
     }
 }

@@ -9,7 +9,9 @@ contract ExternalLendingTests is BSMTestBase {
     ERC4626Mock internal newExternalVault;
     ERC4626Escrow internal newEscrow;
     uint256 constant ASSET_AMOUNT = 1e18;
+    uint256 assetTokenAmount;
     uint256 shares;
+    uint256 ebtcAmount;
 
     /**
      * @notice Pranks the following call as techOpsMultisig
@@ -32,7 +34,7 @@ contract ExternalLendingTests is BSMTestBase {
             address(bsmTester.authority()),
             address(escrow.FEE_RECIPIENT())
         );
-        shares = newExternalVault.previewDeposit(ASSET_AMOUNT);
+        
         vm.prank(techOpsMultisig);
         bsmTester.updateEscrow(address(newEscrow));
 
@@ -56,7 +58,12 @@ contract ExternalLendingTests is BSMTestBase {
             true
         );
 
-        mockAssetToken.mint(techOpsMultisig, 10e18);
+        uint256 numTokens = bound(ASSET_AMOUNT, 1, 1000000000);
+        ebtcAmount = _getEbtcAmount(numTokens) * 1e18 / _assetTokenPrecision();
+        assetTokenAmount = _getAssetTokenAmount(numTokens);
+        shares = newExternalVault.previewDeposit(assetTokenAmount);
+        _mintAssetToken(techOpsMultisig, assetTokenAmount);
+        
         vm.prank(techOpsMultisig);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
     }
@@ -70,7 +77,7 @@ contract ExternalLendingTests is BSMTestBase {
 
         uint256 beforeDepositAmount = newEscrow.totalAssetsDeposited();
         uint256 beforeTotalBalance = newEscrow.totalBalance();
-        depositToExternalVault(ASSET_AMOUNT, shares);
+        depositToExternalVault(assetTokenAmount, shares);
 
         uint256 afterExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
         uint256 afterBalance = mockAssetToken.balanceOf(techOpsMultisig);
@@ -88,7 +95,7 @@ contract ExternalLendingTests is BSMTestBase {
     
     function testBasicExternalRedeem() public {
         sellAsset();
-        depositToExternalVault(ASSET_AMOUNT, shares);
+        depositToExternalVault(assetTokenAmount, shares);
 
         uint256 beforeExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
         uint256 beforeBalance = mockAssetToken.balanceOf(techOpsMultisig);
@@ -115,7 +122,7 @@ contract ExternalLendingTests is BSMTestBase {
 
     function testPartialExternalRedeem() public {
         sellAsset();
-        depositToExternalVault(ASSET_AMOUNT, shares);
+        depositToExternalVault(assetTokenAmount, shares);
 
         uint256 beforeExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
         uint256 beforeBalance = mockAssetToken.balanceOf(techOpsMultisig);
@@ -123,11 +130,11 @@ contract ExternalLendingTests is BSMTestBase {
 
         uint256 assets = newExternalVault.previewRedeem(shares);
         redeemFromExternalVault(shares / 2, assets / 2);
-
+        
         uint256 afterExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
         uint256 afterBalance = mockAssetToken.balanceOf(techOpsMultisig);
         uint256 afterShares = newExternalVault.balanceOf(address(newEscrow));
-
+        
         assertGt(beforeExternalVaultBalance, afterExternalVaultBalance);
         assertEq(beforeBalance, afterBalance);
         assertEq(afterShares, shares / 2);
@@ -143,7 +150,7 @@ contract ExternalLendingTests is BSMTestBase {
 
         sellAsset();
 
-        depositToExternalVault(ASSET_AMOUNT, shares);
+        depositToExternalVault(assetTokenAmount, shares);
 
         uint256 assets = newExternalVault.previewRedeem(shares);
         vm.expectRevert(abi.encodeWithSelector(ERC4626Escrow.TooFewAssetsReceived.selector, assets + 1, assets));
@@ -157,9 +164,13 @@ contract ExternalLendingTests is BSMTestBase {
         //invalid asset amount sent
         vm.expectRevert(abi.encodeWithSelector(ERC4626Escrow.TooFewSharesReceived.selector, 1, 0));
         depositToExternalVault(0, 1);
-        
+
+        shares = newExternalVault.previewDeposit(ASSET_AMOUNT);
         //invalid expected shares amount
-        sellAsset();
+        _mintAssetToken(techOpsMultisig, ASSET_AMOUNT);
+        vm.prank(techOpsMultisig);
+        bsmTester.sellAsset(ASSET_AMOUNT, address(this), 0);
+
         vm.expectRevert(abi.encodeWithSelector(ERC4626Escrow.TooFewSharesReceived.selector, shares + 1, shares));
         depositToExternalVault(ASSET_AMOUNT, shares + 1);
     }
@@ -167,25 +178,29 @@ contract ExternalLendingTests is BSMTestBase {
     function testExternalVaultLossFailsSlippageCheck() public {
         sellAsset();
 
-        depositToExternalVault(ASSET_AMOUNT, 0);
+        depositToExternalVault(assetTokenAmount, 0);
 
+        uint256 halfAssetAmount = assetTokenAmount / 2;
         // 50% external vault loss
         vm.prank(address(newExternalVault));
-        mockAssetToken.transfer(vm.addr(0xdead), 0.5e18);
-
+        mockAssetToken.transfer(vm.addr(0xdead), halfAssetAmount);
+        
         // revert with 50% loss
-        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.BelowExpectedMinOutAmount.selector, ASSET_AMOUNT, 0.5e18));
+        _mintEbtc(testBuyer, ebtcAmount);
+        uint256 assetAmount = assetTokenAmount * _assetTokenPrecision() / 1e18;
+        uint redeemAmount = bsmTester.escrow().previewWithdraw(assetAmount);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.BelowExpectedMinOutAmount.selector, assetTokenAmount, redeemAmount));
         vm.prank(testBuyer);
-        bsmTester.buyAsset(ASSET_AMOUNT, testBuyer, ASSET_AMOUNT);
+        bsmTester.buyAsset(assetTokenAmount, testBuyer, assetTokenAmount);
 
-        assertEq(bsmTester.previewBuyAsset(ASSET_AMOUNT), ASSET_AMOUNT / 2);
+        assertEq(bsmTester.previewBuyAsset(assetTokenAmount), redeemAmount);
 
         vm.prank(testBuyer);
-        assertEq(bsmTester.buyAsset(ASSET_AMOUNT, testBuyer, ASSET_AMOUNT / 2), ASSET_AMOUNT / 2);
+        assertEq(bsmTester.buyAsset(assetTokenAmount, testBuyer, redeemAmount), redeemAmount);
     }
 
     function sellAsset() internal prankTechOpsMultisig {
-        bsmTester.sellAsset(ASSET_AMOUNT, address(this), 0);
+        bsmTester.sellAsset(assetTokenAmount, address(this), 0);
     }
 
     function depositToExternalVault(uint256 _assetsToDeposit, uint256 _minShares) internal prankTechOpsMultisig {
