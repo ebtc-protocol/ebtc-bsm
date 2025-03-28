@@ -15,7 +15,7 @@ import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
-    uint8 constant internal NUM_DECIMALS = 18;
+    uint8 constant internal NUM_DECIMALS = 8;
 
     MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
@@ -106,7 +106,7 @@ contract BSMBase {
         bsmTester.initialize(address(escrow));
 
         // create initial ebtc supply
-        mockEbtcToken.mint(defaultGovernance, 100000000000e18);
+        _mintEbtc(defaultGovernance, 100000000000e18);
         mockAssetOracle.setPrice(1e18);
         mockAssetOracle.setUpdateTime(block.timestamp);
 

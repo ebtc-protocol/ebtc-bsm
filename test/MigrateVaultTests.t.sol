@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 
 contract MigrateAssetVaultTest is BSMTestBase {
     ERC4626Escrow internal newEscrow;
-    //[PASS]
+
     function setUp() public virtual override {
         super.setUp();
 
@@ -19,11 +19,11 @@ contract MigrateAssetVaultTest is BSMTestBase {
             address(bsmTester.authority()),
             address(escrow.FEE_RECIPIENT())
         );
-        mockAssetToken.mint(techOpsMultisig, 10e18);
+        _mintAssetToken(techOpsMultisig, 10e18);
         vm.prank(techOpsMultisig);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
     }
-    //[PASS]
+
     function testBasicScenario() public {
         vm.expectEmit();
         emit IEbtcBSM.EscrowUpdated(address(bsmTester.escrow()), address(newEscrow));
@@ -33,7 +33,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
 
         assertEq(address(bsmTester.escrow()), address(newEscrow));  
     }
-    //[PASS]
+
     function testMigrationAssets(uint256 numTokens, uint256 fraction) public {
         numTokens = bound(numTokens, 1, 1000000000);
         fraction = bound(fraction, 0, _assetTokenPrecision());
@@ -168,7 +168,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
         assertEq(externalVault.balanceOf(address(escrow)), 0);
         assertEq(externalVault.balanceOf(address(newEscrow)), escrowBalance);
     }
-    //  WIP
+
     function testProfitAndExtLending(uint256 numTokens, uint256 fraction) public {
         numTokens = bound(numTokens, 1, 1000000000);
         fraction = bound(fraction, 0, _assetTokenPrecision());
@@ -237,7 +237,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.updateEscrow(address(newEscrow));
         uint256 depositAmount = (assetAmount + 2 - 1)/ 2; // round up TODO double check this was needed
-        assertEq(mockAssetToken.balanceOf(address(newEscrow)), depositAmount);
+        _checkAssetTokenBalance(address(newEscrow), depositAmount);
         assertEq(newEscrow.totalAssetsDeposited(), assetAmount);
     }
 }

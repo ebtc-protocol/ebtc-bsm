@@ -49,8 +49,6 @@ contract BuyAssetTests is BSMTestBase {
         _mintAssetToken(testMinter, assetAmount);
         _mintEbtc(testAuthorizedUser, amount ** 2);
 
-        uint256 prevAssetBalance = mockAssetToken.balanceOf(testMinter);
-
         // 1% fee
         vm.prank(techOpsMultisig);
         vm.expectEmit(false, true, false, false);
@@ -70,7 +68,7 @@ contract BuyAssetTests is BSMTestBase {
         _checkEbtcBalance(testMinter, amount);
         _checkAssetTokenBalance(testMinter, 0);
         _mintEbtc(testBuyer, 10e18);
-        prevAssetBalance = mockEbtcToken.balanceOf(testBuyer);
+
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
         uint256 buyAmount = 1e18;
         uint256 buyAssetAmount = buyAmount * _assetTokenPrecision() / 1e18;
@@ -92,7 +90,7 @@ contract BuyAssetTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
 
-        assertEq(mockAssetToken.balanceOf(defaultFeeRecipient), expectedFee);
+        _checkAssetTokenBalance(defaultFeeRecipient, expectedFee);
         assertEq(escrow.feeProfit(), 0);
     }
 
@@ -105,7 +103,7 @@ contract BuyAssetTests is BSMTestBase {
         bsmTester.setFeeToBuy(100);
 
         _mintAssetToken(testMinter, amount);
-        mockEbtcToken.mint(testAuthorizedUser, amount);
+        _mintEbtc(testAuthorizedUser, amount);
         
         vm.prank(testMinter);
         bsmTester.sellAsset(amount, testMinter, 0);

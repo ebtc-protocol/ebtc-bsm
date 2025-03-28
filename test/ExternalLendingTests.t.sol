@@ -71,8 +71,8 @@ contract ExternalLendingTests is BSMTestBase {
     function testBasicExternalDeposit() public {
         uint256 beforeExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
         uint256 beforeBalance = mockAssetToken.balanceOf(techOpsMultisig);
-        uint256 beforeShares = newExternalVault.balanceOf(address(newEscrow));
 
+        _checkAssetTokenBalance(address(newEscrow), 0);
         sellAsset();
 
         uint256 beforeDepositAmount = newEscrow.totalAssetsDeposited();
@@ -87,7 +87,6 @@ contract ExternalLendingTests is BSMTestBase {
 
         assertGt(afterExternalVaultBalance, beforeExternalVaultBalance);
         assertGt(beforeBalance, afterBalance);
-        assertEq(beforeShares, 0);
         assertEq(afterShares, shares);
         assertEq(beforeDepositAmount, afterDepositAmount);
         assertEq(beforeTotalBalance, afterTotalBalance);
@@ -132,11 +131,10 @@ contract ExternalLendingTests is BSMTestBase {
         redeemFromExternalVault(shares / 2, assets / 2);
         
         uint256 afterExternalVaultBalance = mockAssetToken.balanceOf(address(newExternalVault));
-        uint256 afterBalance = mockAssetToken.balanceOf(techOpsMultisig);
         uint256 afterShares = newExternalVault.balanceOf(address(newEscrow));
         
         assertGt(beforeExternalVaultBalance, afterExternalVaultBalance);
-        assertEq(beforeBalance, afterBalance);
+        _checkAssetTokenBalance(techOpsMultisig, beforeBalance);
         assertEq(afterShares, shares / 2);
     }
     
