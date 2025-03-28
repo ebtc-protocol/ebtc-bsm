@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import "./BSMTestBase.sol";
 import {IEbtcBSM} from "../src/Dependencies/IEbtcBSM.sol";
-//forge test --match-contract "BuyAssetTests" --verbosity -v
+
 contract BuyAssetTests is BSMTestBase {
 
     event AssetBought(uint256 ebtcAmountIn, uint256 assetAmountOut, uint256 feeAmount);
@@ -42,7 +42,7 @@ contract BuyAssetTests is BSMTestBase {
         _checkEbtcBalance(testBuyer, buyerBalance - buyAmount);
     }
 
-    function testBuyAssetFee() public {//TODO clean
+    function testBuyAssetFee() public {
         uint256 amount = 5e18;
         uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;// TODO: standardize
 
@@ -56,7 +56,7 @@ contract BuyAssetTests is BSMTestBase {
         vm.expectEmit(false, true, false, false);
         emit FeeToBuyUpdated(0, 100);
         bsmTester.setFeeToBuy(100);
-        
+
         vm.recordLogs();
         vm.prank(testMinter);
         bsmTester.sellAsset(assetAmount, testMinter, 0);
@@ -123,7 +123,6 @@ contract BuyAssetTests is BSMTestBase {
         uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
         uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;// TODO can this just be abstracted?
 
-        _mintEbtc(address(1), ebtcAmount);//TODO check this
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InsufficientAssetTokens.selector, assetTokenAmount, escrow.totalAssetsDeposited()));
         bsmTester.buyAsset(ebtcAmount, address(this), 0);
     }

@@ -10,7 +10,6 @@ import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
 import {IEscrow} from "./Dependencies/IEscrow.sol";
-import {console} from "forge-std/console.sol";//TODO remove
 
 /**
 * @title eBTC Stability Module (BSM) Contract
@@ -158,7 +157,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         // ebtc to asset price is treated as 1 for buyAsset
         /// @dev totalAssetsDeposited is in asset precision
         uint256 totalAssetsDeposited = escrow.totalAssetsDeposited();
-        
         if (amountToBuy > totalAssetsDeposited) {
             revert InsufficientAssetTokens(amountToBuy, totalAssetsDeposited);
         }
@@ -214,14 +212,14 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
-        console.log("assetAmountInNoFee raw", _assetAmountIn);
-        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;console.log("assetAmountInNoFee minus the fee", assetAmountInNoFee);
+        
+        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
-        console.log("assetAmountInNoFee in ebtc", _ebtcAmountOut);
+
         _checkMintingConstraints(_ebtcAmountOut);
-        
+
         // INVARIANT: _assetAmountIn >= _ebtcAmountOut
         ASSET_TOKEN.safeTransferFrom(
             msg.sender,
@@ -256,7 +254,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         
         if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
-        
+
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
 
         EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
@@ -437,7 +435,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
             /// @dev transfer liquidity to new vault
             escrow.onMigrateSource(_newEscrow);
-           
+
             /// @dev set totalAssetsDeposited on the new vault (fee amount should be 0 here)
             IEscrow(_newEscrow).onMigrateTarget(totalAssetsDeposited);
         }

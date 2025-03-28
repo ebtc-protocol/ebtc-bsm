@@ -5,7 +5,7 @@ import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
 import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
 import {IActivePoolObserver} from "./Dependencies/IActivePoolObserver.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
-import {console} from "forge-std/console.sol";//TODO remove
+
 /// @title Rate Limiting Constraint for Minting
 /// @notice This contract enforces rate-limiting constraints on minting operations to control inflation and supply of tokens.
 contract RateLimitingConstraint is IMintingConstraint, AuthNoOwner {
@@ -61,7 +61,7 @@ contract RateLimitingConstraint is IMintingConstraint, AuthNoOwner {
         }
 
         uint256 newTotalToMint = IEbtcBSM(_minter).totalMinted() + _amount;
-        console.log("CANMINT", _amount, newTotalToMint, maxMint);
+
         if (newTotalToMint > maxMint) {
             return (false, abi.encodeWithSelector(AboveMintingCap.selector, _amount, newTotalToMint, maxMint));
         }
