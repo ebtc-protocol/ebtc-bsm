@@ -212,7 +212,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
-
+        
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
@@ -252,7 +252,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         if (_recipient == address(0)) revert InvalidRecipientAddress();
 
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
-
+        
         if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
 
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
