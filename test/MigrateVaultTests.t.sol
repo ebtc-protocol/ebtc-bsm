@@ -59,7 +59,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
         vm.prank(testBuyer);
         assertEq(bsmTester.buyAsset(ebtcAmount / 2, testBuyer, 0), assetTokenAmount / 2);//ensure there is still balance before migration
 
-        uint256 resultingAssets = (assetTokenAmount + 2 - 1)/ 2; // round up TODO double check this was needed
+        uint256 resultingAssets = (assetTokenAmount + 2 - 1)/ 2; // round up
         uint256 prevTotalDeposit = escrow.totalAssetsDeposited();
         uint256 prevBalance = escrow.totalBalance();
         assertEq(prevTotalDeposit, resultingAssets);
@@ -153,7 +153,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
         assertGt(escrow.totalAssetsDeposited(), 0);
         assertGt(externalVault.balanceOf(address(escrow)), 0);
 
-        uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up TODO double check this was needed
+        uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up
         
         vm.prank(techOpsMultisig);
         escrow.redeemFromExternalVault(redeemAmount , assetAmount / 2);
@@ -236,7 +236,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
 
         vm.prank(techOpsMultisig);
         bsmTester.updateEscrow(address(newEscrow));
-        uint256 depositAmount = (assetAmount + 2 - 1)/ 2; // round up TODO double check this was needed
+        uint256 depositAmount = (assetAmount + 2 - 1)/ 2; // round up
         _checkAssetTokenBalance(address(newEscrow), depositAmount);
         assertEq(newEscrow.totalAssetsDeposited(), assetAmount);
     }

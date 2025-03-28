@@ -44,7 +44,7 @@ contract BuyAssetTests is BSMTestBase {
 
     function testBuyAssetFee() public {
         uint256 amount = 5e18;
-        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;// TODO: standardize
+        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;
 
         _mintAssetToken(testMinter, assetAmount);
         _mintEbtc(testAuthorizedUser, amount ** 2);
@@ -72,7 +72,7 @@ contract BuyAssetTests is BSMTestBase {
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
         uint256 buyAmount = 1e18;
         uint256 buyAssetAmount = buyAmount * _assetTokenPrecision() / 1e18;
-        uint256 expectedOut = 0.99e18 * _assetTokenPrecision() / 1e18;//TODO
+        uint256 expectedOut = 0.99e18 * _assetTokenPrecision() / 1e18;
 
         vm.prank(testBuyer);
         vm.expectEmit(true, false, false, false);
@@ -83,7 +83,7 @@ contract BuyAssetTests is BSMTestBase {
         _checkEbtcBalance(testBuyer, 9e18);
         _checkAssetTokenBalance(testBuyer, expectedOut);
 
-        uint256 expectedFee = 0.01e18 * _assetTokenPrecision() / 1e18;//TODO
+        uint256 expectedFee = 0.01e18 * _assetTokenPrecision() / 1e18;
         assertEq(escrow.feeProfit(), expectedFee);
         assertEq(escrow.totalAssetsDeposited(), prevTotalAssetsDeposited - buyAssetAmount);
 
@@ -96,7 +96,7 @@ contract BuyAssetTests is BSMTestBase {
 
     function testBuyAssetFeeAuthorizedUser() public {
         uint256 amount = 1e18;
-        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;// TODO: standardize
+        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;
 
         // 1% fee
         vm.prank(techOpsMultisig);
@@ -119,7 +119,7 @@ contract BuyAssetTests is BSMTestBase {
         numTokens = bound(numTokens, 1, 1000000000);
         fraction = bound(fraction, 0, _assetTokenPrecision());
         uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;// TODO can this just be abstracted?
+        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
 
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InsufficientAssetTokens.selector, assetTokenAmount, escrow.totalAssetsDeposited()));
         bsmTester.buyAsset(ebtcAmount, address(this), 0);
