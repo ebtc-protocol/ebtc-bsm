@@ -220,6 +220,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         _checkMintingConstraints(_ebtcAmountOut);
 
+        totalMinted += _ebtcAmountOut;
+
         // INVARIANT: _assetAmountIn >= _ebtcAmountOut
         ASSET_TOKEN.safeTransferFrom(
             msg.sender,
@@ -233,8 +235,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         if (_ebtcAmountOut < _minOutAmount) {
             revert BelowExpectedMinOutAmount(_minOutAmount, _ebtcAmountOut);
         }
-
-        totalMinted += _ebtcAmountOut;
 
         EBTC_TOKEN.mint(_recipient, _ebtcAmountOut);
 
