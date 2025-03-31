@@ -2,13 +2,13 @@
 pragma solidity ^0.8.25;
 
 import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
-import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
+import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {AggregatorV3Interface} from "./Dependencies/AggregatorV3Interface.sol";
 
 /// @title Oracle Price Constraint for Minting
 /// @notice This contract uses price feed from an oracle to set constraints on minting based on the asset's current market price.
-/// @dev Implements IMintingConstraint to provide minting restrictions based on real-time asset price information provided by Chainlink oracles.
-contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
+/// @dev Implements IConstraint to provide minting restrictions based on real-time asset price information provided by Chainlink oracles.
+contract OraclePriceConstraint is IConstraint, AuthNoOwner {
     /// @notice Basis points constant for price calculations
     uint256 public constant BPS = 10000;
 
@@ -68,12 +68,12 @@ contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
 
     /// @notice Determines if minting is allowed based on the current asset price
     /// @param _amount The amount of tokens requested to mint (unused in this contract)
-    /// @param _minter The address requesting to mint (unused in this contract)
+    /// @param _bsm The address requesting to mint (unused in this contract)
     /// @return bool True if minting is allowed, false otherwise
     /// @return bytes Encoded error data if minting is not allowed
-    function canMint(
+    function canProcess(
         uint256 _amount,
-        address _minter
+        address _bsm
     ) external view returns (bool, bytes memory) {
         uint256 assetPrice = _getAssetPrice();
         /// @dev peg price is 1e18

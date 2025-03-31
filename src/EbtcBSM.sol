@@ -8,7 +8,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
-import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
+import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {IEscrow} from "./Dependencies/IEscrow.sol";
 
 /**
@@ -46,13 +46,13 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     IEscrow public escrow;
 
     /// @notice Oracle-based price constraint for minting
-    IMintingConstraint public oraclePriceConstraint;
+    IConstraint public oraclePriceConstraint;
 
     /// @notice Rate limiting constraint for minting
-    IMintingConstraint public rateLimitingConstraint;
+    IConstraint public rateLimitingConstraint;
 
     /// @notice Constraint for buying asset tokens
-    IMintingConstraint public buyAssetConstraint;
+    IConstraint public buyAssetConstraint;
 
     /// @notice Error for when there are insufficient asset tokens available
     error InsufficientAssetTokens(uint256 required, uint256 available);
@@ -91,9 +91,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         ASSET_TOKEN = IERC20(_assetToken);
         ASSET_TOKEN_PRECISION = 10 ** ERC20(_assetToken).decimals();
         require(ASSET_TOKEN_PRECISION <= 1e18);
-        oraclePriceConstraint = IMintingConstraint(_oraclePriceConstraint);
-        rateLimitingConstraint = IMintingConstraint(_rateLimitingConstraint);
-        buyAssetConstraint = IMintingConstraint(_buyAssetConstraint);
+        oraclePriceConstraint = IConstraint(_oraclePriceConstraint);
+        rateLimitingConstraint = IConstraint(_rateLimitingConstraint);
+        buyAssetConstraint = IConstraint(_buyAssetConstraint);
         EBTC_TOKEN = IEbtcToken(_ebtcToken);
         _initializeAuthority(_governance);
     }
@@ -164,9 +164,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         bool success;
         bytes memory errData;
 
-        (success, errData) = buyAssetConstraint.canMint(amountToBuy, address(this));
+        (success, errData) = buyAssetConstraint.canProcess(amountToBuy, address(this));
         if (!success) {
-            revert IMintingConstraint.MintingConstraintCheckFailed(
+            revert IConstraint.ConstraintCheckFailed(
                 address(buyAssetConstraint),
                 amountToBuy,
                 address(this),
@@ -182,9 +182,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         bool success;
         bytes memory errData;
 
-        (success, errData) = oraclePriceConstraint.canMint(_amountToMint, address(this));
+        (success, errData) = oraclePriceConstraint.canProcess(_amountToMint, address(this));
         if (!success) {
-            revert IMintingConstraint.MintingConstraintCheckFailed(
+            revert IConstraint.ConstraintCheckFailed(
                 address(oraclePriceConstraint),
                 _amountToMint,
                 address(this),
@@ -192,9 +192,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
             );
         }
 
-        (success, errData) = rateLimitingConstraint.canMint(_amountToMint, address(this));
+        (success, errData) = rateLimitingConstraint.canProcess(_amountToMint, address(this));
         if (!success) {
-            revert IMintingConstraint.MintingConstraintCheckFailed(
+            revert IConstraint.ConstraintCheckFailed(
                 address(rateLimitingConstraint),
                 _amountToMint,
                 address(this),
@@ -397,8 +397,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     */
     function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {
         require(_newRateLimitingConstraint != address(0), "Invalid address");
-        emit IMintingConstraint.MintingConstraintUpdated(address(rateLimitingConstraint), _newRateLimitingConstraint);
-        rateLimitingConstraint = IMintingConstraint(_newRateLimitingConstraint);
+        emit IConstraint.ConstraintUpdated(address(rateLimitingConstraint), _newRateLimitingConstraint);
+        rateLimitingConstraint = IConstraint(_newRateLimitingConstraint);
     }
 
     /** @notice Updates the oracle price constraint address
@@ -407,8 +407,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     */
     function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {
         require(_newOraclePriceConstraint != address(0));
-        emit IMintingConstraint.MintingConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
-        oraclePriceConstraint = IMintingConstraint(_newOraclePriceConstraint);
+        emit IConstraint.ConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
+        oraclePriceConstraint = IConstraint(_newOraclePriceConstraint);
     }
 
     /** @notice Updates the buy asset constraint address
@@ -417,8 +417,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     */
     function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {
         require(_newBuyAssetConstraint != address(0));
-        emit IMintingConstraint.MintingConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
-        buyAssetConstraint = IMintingConstraint(_newBuyAssetConstraint);
+        emit IConstraint.ConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
+        buyAssetConstraint = IConstraint(_newBuyAssetConstraint);
     }
 
     /** @notice Updates the escrow address and initiates an escrow migration
