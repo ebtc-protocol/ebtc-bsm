@@ -45,7 +45,7 @@ contract BSMBase {
     }
 
     function _getAssetTokenAmount(uint256 units) internal returns (uint256) {
-        return units * (10 ** mockAssetToken.decimals());
+        return units * _assetTokenPrecision();
     }
 
     function _getEbtcAmount(uint256 units) internal returns (uint256) {

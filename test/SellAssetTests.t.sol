@@ -8,11 +8,7 @@ import {IMintingConstraint} from "../src/Dependencies/IMintingConstraint.sol";
 
 contract SellAssetTests is BSMTestBase {
      function testSellAssetSuccess(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testMinter, assetTokenAmount);
 
@@ -37,11 +33,7 @@ contract SellAssetTests is BSMTestBase {
     }
 
     function testSellAssetFeeSuccess(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 sellerBalance = 10 * assetTokenAmount;
         _mintAssetToken(testMinter, sellerBalance);
         // 1% fee
@@ -71,11 +63,7 @@ contract SellAssetTests is BSMTestBase {
     }
 
     function testSellAssetFeeAuthorizedUser(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testAuthorizedUser, assetTokenAmount);
 
@@ -88,11 +76,11 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(testAuthorizedUser);
         assertEq(bsmTester.sellAssetNoFee(assetTokenAmount, testAuthorizedUser, 0), ebtcAmount);
     }
-
+    //TODO
     function testSellTokenFailureZeroAmount() public {
 
     }
-
+    //TODO
     function testSellTokenFailureInvalidRecipient() public {
 
     }
@@ -124,11 +112,7 @@ contract SellAssetTests is BSMTestBase {
     }
 
     function testSellAssetFailBadPrice(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testMinter, assetTokenAmount);
 
@@ -195,11 +179,7 @@ contract SellAssetTests is BSMTestBase {
     }
 
     function testSellAssetFailSlippageCheck(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testMinter, assetTokenAmount);
         // 1% fee

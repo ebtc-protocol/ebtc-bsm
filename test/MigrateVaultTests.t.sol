@@ -35,11 +35,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
     }
 
     function testMigrationAssets(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testMinter, assetTokenAmount);
 
@@ -80,11 +76,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
     }
 
     function testMigrationWithProfit(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(testMinter, assetTokenAmount);
 
@@ -129,11 +121,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
     }
     
     function testMigrationWithExtLending(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(techOpsMultisig, assetTokenAmount);
 
@@ -170,10 +158,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
     }
 
     function testProfitAndExtLending(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         vm.prank(techOpsMultisig);
     	bsmTester.setFeeToSell(100);
@@ -213,11 +198,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
     }
 
     function testMigrationWithExternalVaultLoss(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         _mintAssetToken(techOpsMultisig, assetTokenAmount);
 
