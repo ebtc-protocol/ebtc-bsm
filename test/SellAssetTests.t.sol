@@ -76,13 +76,17 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(testAuthorizedUser);
         assertEq(bsmTester.sellAssetNoFee(assetTokenAmount, testAuthorizedUser, 0), ebtcAmount);
     }
-    //TODO
+
     function testSellTokenFailureZeroAmount() public {
-
+        vm.prank(testMinter);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsmTester.sellAsset(0, testMinter, 2);
     }
-    //TODO
-    function testSellTokenFailureInvalidRecipient() public {
 
+    function testSellTokenFailureInvalidRecipient() public {
+        vm.prank(testMinter);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidRecipientAddress.selector));
+        bsmTester.sellAsset(1e18, address(0), 2);
     }
 
     function testSellAssetFailAboveCap(uint256 fraction) public {
