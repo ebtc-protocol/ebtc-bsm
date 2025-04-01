@@ -2,6 +2,8 @@
 pragma solidity 0.8.25;
 
 interface IEscrow {
+    event ProfitClaimed(uint256 profitAmount);
+
     function totalAssetsDeposited() external view returns (uint256);
     function totalBalance() external view returns (uint256);
     function onDeposit(uint256 assetAmount) external;

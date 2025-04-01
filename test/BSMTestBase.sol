@@ -20,7 +20,14 @@ contract BSMTestBase is BSMBase, Test {
     }
 
     function _totalMintedEqTotalAssetsDeposited() internal {
-        assertEq(bsmTester.totalMinted(), escrow.totalAssetsDeposited() * 1e18 / (10 ** mockAssetToken.decimals()));
+        assertEq(bsmTester.totalMinted(), escrow.totalAssetsDeposited() * 1e18 / _assetTokenPrecision());
+    }
+
+    function _getTestData(uint256 numTokens, uint256 fraction) internal returns(uint256 ebtcAmount, uint256 assetTokenAmount) {
+        numTokens = bound(numTokens, 1, 1000000000);
+        fraction = bound(fraction, 0, _assetTokenPrecision());
+        ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
+        assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
     }
 
     function setUp() public virtual {
