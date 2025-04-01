@@ -28,6 +28,12 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
      */
     AggregatorV3Interface public immutable BTC_USD_CL_FEED;
 
+    /// @notice max freshness for the ASSET/USD feed
+    uint256 public immutable ASSET_FEED_FRESHNESS;
+
+    /// @notice max freshness for the BTC/USD feed
+    uint256 public immutable BTC_FEED_FRESHNESS;
+
     /// @notice Specifies if the price of this adapter should be inverted (BTC/ASSET instead of ASSET/BTC)
     bool public immutable INVERTED;
 
@@ -39,9 +45,17 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
      * @param _assetUsdClFeed AggregatorV3Interface contract feed for Asset -> USD
      * @param _btcUsdClFeed AggregatorV3Interface contract feed for BTC -> USD
      */
-    constructor(AggregatorV3Interface _assetUsdClFeed, AggregatorV3Interface _btcUsdClFeed, bool _inverted) {
+    constructor(
+        AggregatorV3Interface _assetUsdClFeed,
+        uint256 _maxAssetFreshness,
+        AggregatorV3Interface _btcUsdClFeed, 
+        uint256 _maxBtcFreshness,
+        bool _inverted
+    ) {
         ASSET_USD_CL_FEED = AggregatorV3Interface(_assetUsdClFeed);
+        ASSET_FEED_FRESHNESS = _maxAssetFreshness;
         BTC_USD_CL_FEED = AggregatorV3Interface(_btcUsdClFeed);
+        BTC_FEED_FRESHNESS = _maxBtcFreshness;
         INVERTED = _inverted;
 
         require(ASSET_USD_CL_FEED.decimals() <= MAX_DECIMALS);
@@ -80,12 +94,14 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
     }
 
     function _latestRoundData(
-        AggregatorV3Interface _feed
+        AggregatorV3Interface _feed,
+        uint256 maxFreshness
     ) private view returns (int256 answer, uint256 updatedAt) {
         uint80 feedRoundId;
         (feedRoundId, answer, , updatedAt, ) = _feed.latestRoundData();
         require(feedRoundId > 0);
         require(answer > 0);
+        require((block.timestamp - updatedAt) <= maxFreshness);
     }
 
     /// @dev Needed because we inherit from AggregatorV3Interface
@@ -116,8 +132,8 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
             uint80 answeredInRound
         )
     {
-        (int256 assetUsdPrice, uint256 assetUsdUpdatedAt) = _latestRoundData(ASSET_USD_CL_FEED);
-        (int256 btcUsdPrice, uint256 btcUsdUpdatedAt) = _latestRoundData(BTC_USD_CL_FEED);
+        (int256 assetUsdPrice, uint256 assetUsdUpdatedAt) = _latestRoundData(ASSET_USD_CL_FEED, ASSET_FEED_FRESHNESS);
+        (int256 btcUsdPrice, uint256 btcUsdUpdatedAt) = _latestRoundData(BTC_USD_CL_FEED, BTC_FEED_FRESHNESS);
 
         updatedAt = _min(assetUsdUpdatedAt, btcUsdUpdatedAt);
         answer = _convertAnswer(btcUsdPrice, assetUsdPrice);
