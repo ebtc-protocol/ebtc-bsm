@@ -9,6 +9,8 @@ contract BuyAssetTests is BSMTestBase {
     event AssetBought(uint256 ebtcAmountIn, uint256 assetAmountOut, uint256 feeAmount);
     event FeeToBuyUpdated(uint256 oldFee, uint256 newFee);
 
+    // TODO: add some negative tests (buyAmount == 0, invalid recipient etc.)
+
     function testBuyAssetSuccess(uint256 numTokens, uint256 fraction) public {
         (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 buyerBalance = ebtcAmount * 2;
@@ -16,6 +18,10 @@ contract BuyAssetTests is BSMTestBase {
         _mintEbtc(testBuyer, buyerBalance);
 
         _checkAssetTokenBalance(testMinter, assetTokenAmount);
+
+        uint256 buyAmount = ebtcAmount / 2;
+        // TEST: make sure preview is correct
+        assertEq(bsmTester.previewBuyAsset(ebtcAmount), assetTokenAmount / 2);
 
         vm.prank(testMinter);
         bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
@@ -28,7 +34,6 @@ contract BuyAssetTests is BSMTestBase {
         vm.recordLogs();
         vm.prank(testBuyer);
 
-        uint256 buyAmount = ebtcAmount / 2;
         assertEq(bsmTester.buyAsset(buyAmount, testBuyer, 0), assetTokenAmount / 2);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
@@ -39,22 +44,30 @@ contract BuyAssetTests is BSMTestBase {
         _checkEbtcBalance(testBuyer, buyerBalance - buyAmount);
     }
 
-    function testBuyAssetFee() public {
-        uint256 amount = 5e18;
-        uint256 assetAmount = amount * _assetTokenPrecision()/ 1e18;
+    function testBuyAssetFee(
+        uint256 numSellTokens, 
+        uint256 sellFraction,
+        uint256 numBuyTokens,
+        uint256 buyFraction
+    ) public {
+        (uint256 ebtcSellAmount, uint256 assetTokenSellAmount) = _getTestData(numSellTokens, sellFraction);
+        (uint256 ebtcBuyAmount, uint256 assetTokenBuyAmount) = _getTestData(numBuyTokens, buyFraction);
 
-        _mintAssetToken(testMinter, assetAmount);
-        _mintEbtc(testAuthorizedUser, amount ** 2);
+        ebtcBuyAmount = bound(ebtcBuyAmount, 1, ebtcSellAmount);
+        assetTokenBuyAmount = bound(assetTokenBuyAmount, 1, assetTokenSellAmount);
+
+        _mintAssetToken(testMinter, assetTokenSellAmount);
+        _mintEbtc(testAuthorizedUser, ebtcSellAmount);
 
         // 1% fee
         vm.prank(techOpsMultisig);
-        vm.expectEmit(false, true, false, false);
+        vm.expectEmit(address(bsmTester));
         emit FeeToBuyUpdated(0, 100);
         bsmTester.setFeeToBuy(100);
 
         vm.recordLogs();
         vm.prank(testMinter);
-        bsmTester.sellAsset(assetAmount, testMinter, 0);
+        bsmTester.sellAsset(assetTokenSellAmount, testMinter, 0);
 
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
@@ -62,27 +75,28 @@ contract BuyAssetTests is BSMTestBase {
         assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
         assertEq(entries[2].topics[0], keccak256("AssetSold(uint256,uint256,uint256)"));
 
-        _checkEbtcBalance(testMinter, amount);
+        _checkEbtcBalance(testMinter, assetTokenSellAmount);
         _checkAssetTokenBalance(testMinter, 0);
-        _mintEbtc(testBuyer, 10e18);
+        _mintEbtc(testBuyer, ebtcBuyAmount);
 
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
-        uint256 buyAmount = 1e18;
-        uint256 buyAssetAmount = buyAmount * _assetTokenPrecision() / 1e18;
-        uint256 expectedOut = 0.99e18 * _assetTokenPrecision() / 1e18;
+        uint256 expectedFee = (ebtcBuyAmount * 100 / bsmTester.BPS()) * _assetTokenPrecision() / 1e18; // 1%
+        uint256 expectedOut = assetTokenBuyAmount - expectedFee;
+
+        // TEST: make sure preview is correct
+        assertEq(bsmTester.previewBuyAsset(ebtcBuyAmount), assetTokenBuyAmount);
 
         vm.prank(testBuyer);
-        vm.expectEmit(true, false, false, false);
-        emit AssetBought(buyAmount, 0, 0);
+        vm.expectEmit(address(bsmTester));
+        emit AssetBought(ebtcBuyAmount, expectedOut, expectedFee);
 
-        assertEq(bsmTester.buyAsset(buyAmount, testBuyer, 0), expectedOut);
+        assertEq(bsmTester.buyAsset(ebtcBuyAmount, testBuyer, 0), expectedOut);
 
-        _checkEbtcBalance(testBuyer, 9e18);
+        _checkEbtcBalance(testBuyer, 0);
         _checkAssetTokenBalance(testBuyer, expectedOut);
 
-        uint256 expectedFee = 0.01e18 * _assetTokenPrecision() / 1e18;
         assertEq(escrow.feeProfit(), expectedFee);
-        assertEq(escrow.totalAssetsDeposited(), prevTotalAssetsDeposited - buyAssetAmount);
+        assertEq(escrow.totalAssetsDeposited(), prevTotalAssetsDeposited - assetTokenBuyAmount);
 
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
@@ -91,25 +105,27 @@ contract BuyAssetTests is BSMTestBase {
         assertEq(escrow.feeProfit(), 0);
     }
 
-    function testBuyAssetFeeAuthorizedUser() public {
-        uint256 amount = 1e18;
-        uint256 assetAmount = amount * _assetTokenPrecision()/ 1e18;
+    function testBuyAssetFeeAuthorizedUser(uint256 numTokens, uint256 fraction) public {
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         // 1% fee
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToBuy(100);
 
-        _mintAssetToken(testMinter, amount);
-        _mintEbtc(testAuthorizedUser, amount);
+        _mintAssetToken(testMinter, assetTokenAmount);
+        _mintEbtc(testAuthorizedUser, ebtcAmount);
         
         vm.prank(testMinter);
-        bsmTester.sellAsset(amount, testMinter, 0);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+
+        // TEST: make sure preview is correct
+        assertEq(bsmTester.previewBuyAsset(ebtcAmount), assetTokenAmount);
 
         vm.expectEmit();
-        emit IEbtcBSM.AssetBought(amount, assetAmount, 0);
+        emit IEbtcBSM.AssetBought(ebtcAmount, assetTokenAmount, 0);
         
         vm.prank(testAuthorizedUser);
-        assertEq(bsmTester.buyAssetNoFee(amount, testAuthorizedUser, 0), assetAmount);
+        assertEq(bsmTester.buyAssetNoFee(ebtcAmount, testAuthorizedUser, 0), assetTokenAmount);
     }
 
     function testBuyAssetFailAboveTotalAssetsDeposited(uint256 numTokens, uint256 fraction) public {
