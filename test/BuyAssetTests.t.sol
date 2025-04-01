@@ -76,33 +76,34 @@ contract BuyAssetTests is BSMTestBase {
         assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
         assertEq(entries[2].topics[0], keccak256("AssetSold(uint256,uint256,uint256)"));
 
-        _checkEbtcBalance(testMinter, assetTokenSellAmount);
+        _checkEbtcBalance(testMinter, ebtcSellAmount);
         _checkAssetTokenBalance(testMinter, 0);
         _mintEbtc(testBuyer, ebtcBuyAmount);
 
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
-        uint256 expectedFee = (ebtcBuyAmount * 100 / bsmTester.BPS()) * _assetTokenPrecision() / 1e18; // 1%
-        uint256 expectedOut = assetTokenBuyAmount - expectedFee;
+        uint256 fee = assetTokenBuyAmount * 100 / bsmTester.BPS(); // 1%
+        uint256 expectedOut = assetTokenBuyAmount - fee;
+        uint256 expectedBtcFee = ebtcBuyAmount * 100 / bsmTester.BPS();
 
         // TEST: make sure preview is correct
         assertEq(bsmTester.previewBuyAsset(ebtcBuyAmount), expectedOut);
-
+        bsmTester.previewBuyAsset(ebtcBuyAmount);
         vm.prank(testBuyer);
         vm.expectEmit(address(bsmTester));
-        emit AssetBought(ebtcBuyAmount, expectedOut, expectedFee);
+        emit AssetBought(ebtcBuyAmount, expectedOut, expectedBtcFee);
 
         assertEq(bsmTester.buyAsset(ebtcBuyAmount, testBuyer, 0), expectedOut);
 
         _checkEbtcBalance(testBuyer, 0);
         _checkAssetTokenBalance(testBuyer, expectedOut);
 
-        assertEq(escrow.feeProfit(), expectedFee);
+        assertEq(escrow.feeProfit(), fee);
         assertEq(escrow.totalAssetsDeposited(), prevTotalAssetsDeposited - assetTokenBuyAmount);
 
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
 
-        _checkAssetTokenBalance(defaultFeeRecipient, expectedFee);
+        _checkAssetTokenBalance(defaultFeeRecipient, fee);
         assertEq(escrow.feeProfit(), 0);
     }
 
