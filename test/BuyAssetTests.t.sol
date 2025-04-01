@@ -10,10 +10,7 @@ contract BuyAssetTests is BSMTestBase {
     event FeeToBuyUpdated(uint256 oldFee, uint256 newFee);
 
     function testBuyAssetSuccess(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 buyerBalance = ebtcAmount * 2;
         _mintAssetToken(testMinter, assetTokenAmount);
         _mintEbtc(testBuyer, buyerBalance);
@@ -44,7 +41,7 @@ contract BuyAssetTests is BSMTestBase {
 
     function testBuyAssetFee() public {
         uint256 amount = 5e18;
-        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;
+        uint256 assetAmount = amount * _assetTokenPrecision()/ 1e18;
 
         _mintAssetToken(testMinter, assetAmount);
         _mintEbtc(testAuthorizedUser, amount ** 2);
@@ -96,7 +93,7 @@ contract BuyAssetTests is BSMTestBase {
 
     function testBuyAssetFeeAuthorizedUser() public {
         uint256 amount = 1e18;
-        uint256 assetAmount = amount * (10 ** mockAssetToken.decimals()) / 1e18;
+        uint256 assetAmount = amount * _assetTokenPrecision()/ 1e18;
 
         // 1% fee
         vm.prank(techOpsMultisig);
@@ -116,20 +113,14 @@ contract BuyAssetTests is BSMTestBase {
     }
 
     function testBuyAssetFailAboveTotalAssetsDeposited(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InsufficientAssetTokens.selector, assetTokenAmount, escrow.totalAssetsDeposited()));
         bsmTester.buyAsset(ebtcAmount, address(this), 0);
     }
 
     function testBuyAssetFailSlippageCheck(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 buyerBalance = ebtcAmount;
         uint256 sellerBalance = 5 * assetTokenAmount;
         _mintAssetToken(testMinter, sellerBalance);
@@ -154,10 +145,7 @@ contract BuyAssetTests is BSMTestBase {
     }
 
     function testPreviewBuyAssetAndLiquidity(uint256 numTokens, uint256 fraction) public {
-        numTokens = bound(numTokens, 1, 1000000000);
-        fraction = bound(fraction, 0, _assetTokenPrecision());
-        uint256 ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
-        uint256 assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 withdrawAmountEbtc = 3 * ebtcAmount;
         uint256 withdrawAmountAsset = 3 * assetTokenAmount;
 
