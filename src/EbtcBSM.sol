@@ -308,6 +308,29 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_ebtcAmountIn));
     }
 
+    /** 
+     * @notice Calculates the amount of eBTC minted for a given amount of asset tokens accounting
+     * for all minting constraints (no fee)
+     * @param _assetAmountIn the total amount intended to be deposited
+     * @return _ebtcAmountOut the estimated eBTC to mint after fees
+     */
+    function previewSellAssetNoFee(
+        uint256 _assetAmountIn
+    ) external view returns (uint256 _ebtcAmountOut) {
+        return _previewSellAsset(_assetAmountIn, 0);
+    }
+
+    /** 
+     * @notice Calculates the net asset amount that can be bought with a given amount of eBTC (no fee)
+     * @param _ebtcAmountIn the total amount intended to be deposited
+     * @return _assetAmountOut the estimated asset to buy after fees
+     */
+    function previewBuyAssetNoFee(
+        uint256 _ebtcAmountIn
+    ) external view returns (uint256 _assetAmountOut) {
+        return _previewBuyAsset(_ebtcAmountIn, 0);
+    }
+
     /**
      * @notice Allows users to mint eBTC by depositing asset tokens
      * @param _assetAmountIn Amount of asset tokens to deposit
