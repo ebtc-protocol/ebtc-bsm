@@ -15,7 +15,7 @@ import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
-    uint8 constant internal NUM_DECIMALS = 18;
+    uint8 constant internal NUM_DECIMALS = 8;
 
     MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
@@ -162,6 +162,12 @@ contract BSMBase {
             15,
             address(bsmTester),
             bsmTester.setRateLimitingConstraint.selector,
+            true
+        );
+        setRoleCapability(
+            15,
+            address(bsmTester),
+            bsmTester.setBuyAssetConstraint.selector,
             true
         );
         setRoleCapability(
