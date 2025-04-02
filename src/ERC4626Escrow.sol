@@ -75,6 +75,8 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
             }
             // using convertToShares here because it rounds down
             // this prevents the vault from taking on losses
+            /// @notice We assume convertToShares always returns less shares than previewWithdraw
+            /// @notice This may not be the case for Euler earn
             uint256 shares = _clampShares(EXTERNAL_VAULT.convertToShares(deficit));
             uint256 redeemed;
             /// @dev avoid redeeming 0 shares

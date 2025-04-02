@@ -6,11 +6,12 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {IEscrow} from "./Dependencies/IEscrow.sol";
-
+import {console} from "forge-std/console.sol";
 /**
 * @title eBTC Stability Module (BSM) Contract
 * @notice Facilitates bi-directional exchange between eBTC and other BTC-denominated assets with no slippage.
@@ -112,7 +113,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @return Fee amount
     */
     function _feeToBuy(uint256 _amount) private view returns (uint256) {
-        return (_amount * feeToBuyBPS) / BPS;
+        return Math.mulDiv(_amount, feeToBuyBPS, BPS, Math.Rounding.Ceil);
     }
 
     /** @notice Calculates the fee for selling asset tokens
@@ -121,7 +122,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     */
     function _feeToSell(uint256 _amount) private view returns (uint256) {
         uint256 fee = feeToSellBPS;
-        return (_amount * fee) / (fee + BPS);
+        return Math.mulDiv(_amount, fee, fee + BPS, Math.Rounding.Ceil);
     }
 
     function _toAssetPrecision(uint256 _amount) private view returns (uint256)  {
@@ -212,7 +213,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
-        
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
@@ -252,7 +252,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         if (_recipient == address(0)) revert InvalidRecipientAddress();
 
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
-        
         if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
 
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
@@ -306,6 +305,29 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _ebtcAmountIn
     ) external view returns (uint256 _assetAmountOut) {
         return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_ebtcAmountIn));
+    }
+
+    /** 
+     * @notice Calculates the amount of eBTC minted for a given amount of asset tokens accounting
+     * for all minting constraints (no fee)
+     * @param _assetAmountIn the total amount intended to be deposited
+     * @return _ebtcAmountOut the estimated eBTC to mint after fees
+     */
+    function previewSellAssetNoFee(
+        uint256 _assetAmountIn
+    ) external view returns (uint256 _ebtcAmountOut) {
+        return _previewSellAsset(_assetAmountIn, 0);
+    }
+
+    /** 
+     * @notice Calculates the net asset amount that can be bought with a given amount of eBTC (no fee)
+     * @param _ebtcAmountIn the total amount intended to be deposited
+     * @return _assetAmountOut the estimated asset to buy after fees
+     */
+    function previewBuyAssetNoFee(
+        uint256 _ebtcAmountIn
+    ) external view returns (uint256 _assetAmountOut) {
+        return _previewBuyAsset(_ebtcAmountIn, 0);
     }
 
     /**
@@ -395,7 +417,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newRateLimitingConstraint New address for the rate limiting constraint
     */
-    function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {
+    function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {//TODO test
         require(_newRateLimitingConstraint != address(0), "Invalid address");
         emit IConstraint.ConstraintUpdated(address(rateLimitingConstraint), _newRateLimitingConstraint);
         rateLimitingConstraint = IConstraint(_newRateLimitingConstraint);
@@ -405,7 +427,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newOraclePriceConstraint New address for the oracle price constraint
     */
-    function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {
+    function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {//TODO test
         require(_newOraclePriceConstraint != address(0));
         emit IConstraint.ConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
         oraclePriceConstraint = IConstraint(_newOraclePriceConstraint);
@@ -415,7 +437,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newBuyAssetConstraint New address for the buy asset constraint
     */
-    function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {
+    function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {//TODO test
         require(_newBuyAssetConstraint != address(0));
         emit IConstraint.ConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
         buyAssetConstraint = IConstraint(_newBuyAssetConstraint);
