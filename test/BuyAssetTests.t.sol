@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.25;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./BSMTestBase.sol";
 import {IEbtcBSM} from "../src/Dependencies/IEbtcBSM.sol";
 
@@ -79,16 +80,15 @@ contract BuyAssetTests is BSMTestBase {
         _mintEbtc(testBuyer, ebtcBuyAmount);
 
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
-        uint256 fee = assetTokenBuyAmount * 100 / bsmTester.BPS(); // 1%
+        uint256 fee = _feeToBuy(assetTokenBuyAmount);
         uint256 expectedOut = assetTokenBuyAmount - fee;
-        uint256 expectedBtcFee = ebtcBuyAmount * 100 / bsmTester.BPS();
 
         // TEST: make sure preview is correct
         assertEq(bsmTester.previewBuyAsset(ebtcBuyAmount), expectedOut);
         bsmTester.previewBuyAsset(ebtcBuyAmount);
         vm.prank(testBuyer);
         vm.expectEmit(address(bsmTester));
-        emit AssetBought(ebtcBuyAmount, expectedOut, expectedBtcFee);
+        emit AssetBought(ebtcBuyAmount, expectedOut, fee);
 
         assertEq(bsmTester.buyAsset(ebtcBuyAmount, testBuyer, 0), expectedOut);
 
@@ -119,8 +119,7 @@ contract BuyAssetTests is BSMTestBase {
         bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
 
         // TEST: make sure preview is correct
-        // TODO: this doesn't work because preview functions don't account for authorized users
-        //assertEq(bsmTester.previewBuyAsset(ebtcAmount), assetTokenAmount);
+        assertEq(bsmTester.previewBuyAssetNoFee(ebtcAmount), assetTokenAmount);
 
         vm.expectEmit();
         emit IEbtcBSM.AssetBought(ebtcAmount, assetTokenAmount, 0);

@@ -281,7 +281,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
             );
         }
 
-        emit AssetBought(_ebtcAmountIn, _assetAmountOut, _feeAmount);
+        emit AssetBought(_ebtcAmountIn, _assetAmountOut, feeAmountInAssetPrecision);
     }
 
     /** 

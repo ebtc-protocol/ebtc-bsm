@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "forge-std/Test.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {BSMBase} from "./BSMBase.sol";
 import "../src/EbtcBSM.sol";
 
@@ -28,6 +29,18 @@ contract BSMTestBase is BSMBase, Test {
         fraction = bound(fraction, 0, _assetTokenPrecision());
         ebtcAmount = _getEbtcAmount(numTokens) + fraction * 1e18 / _assetTokenPrecision();
         assetTokenAmount = _getAssetTokenAmount(numTokens) + fraction;
+    }
+
+    function _feeToBuy(uint256 amount) internal view returns (uint256) {
+        return Math.mulDiv(amount, bsmTester.feeToBuyBPS(), bsmTester.BPS(), Math.Rounding.Ceil);
+    }
+
+    function _feeToSell(uint256 amount) internal view returns (uint256) {
+        return Math.mulDiv(
+            amount, bsmTester.feeToSellBPS(), 
+            bsmTester.feeToSellBPS() + bsmTester.BPS(),
+            Math.Rounding.Ceil
+        );
     }
 
     function setUp() public virtual {

@@ -15,10 +15,8 @@ contract SellAssetTests is BSMTestBase {
         _checkAssetTokenBalance(testMinter, assetTokenAmount);
         _checkEbtcBalance(testMinter, 0);
 
-        uint256 fee = assetTokenAmount * bsmTester.feeToBuyBPS() / (bsmTester.feeToBuyBPS() + bsmTester.BPS());
-
         vm.expectEmit();
-        emit IEbtcBSM.AssetSold(assetTokenAmount, ebtcAmount, fee);
+        emit IEbtcBSM.AssetSold(assetTokenAmount, ebtcAmount, 0);
 
         vm.prank(testMinter);
         assertEq(bsmTester.sellAsset(assetTokenAmount, testMinter, 0), ebtcAmount);
@@ -41,7 +39,7 @@ contract SellAssetTests is BSMTestBase {
         bsmTester.setFeeToSell(100);
         _checkAssetTokenBalance(testMinter, sellerBalance);
         
-        uint256 fee = assetTokenAmount * bsmTester.feeToSellBPS() / (bsmTester.feeToSellBPS() + bsmTester.BPS());
+        uint256 fee = _feeToSell(assetTokenAmount);
         uint256 resultAmount = assetTokenAmount - fee;
         uint256 resultInEbtc = resultAmount * 1e18 / _assetTokenPrecision();
 

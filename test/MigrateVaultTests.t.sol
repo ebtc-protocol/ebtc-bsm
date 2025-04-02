@@ -86,7 +86,7 @@ contract MigrateAssetVaultTest is BSMTestBase {
         // make profit
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(100);
-        uint256 fee = assetTokenAmount * bsmTester.feeToSellBPS() / (bsmTester.feeToSellBPS() + bsmTester.BPS());console.log("Vi",ebtcAmount - fee, ebtcAmount, fee);
+        uint256 fee = _feeToSell(assetTokenAmount);
         uint256 resultAmount = assetTokenAmount - fee;
         uint256 resultInEbtc = resultAmount * 1e18 / _assetTokenPrecision();
         
