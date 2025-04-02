@@ -9,8 +9,6 @@ contract BuyAssetTests is BSMTestBase {
     event AssetBought(uint256 ebtcAmountIn, uint256 assetAmountOut, uint256 feeAmount);
     event FeeToBuyUpdated(uint256 oldFee, uint256 newFee);
 
-    // TODO: add some negative tests (buyAmount == 0, invalid recipient etc.)
-
     function testBuyAssetSuccess(uint256 numTokens, uint256 fraction) public {
         (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 buyerBalance = ebtcAmount * 2;
@@ -208,5 +206,15 @@ contract BuyAssetTests is BSMTestBase {
 
         assertEq(amtOut, realOut);
         assertLt(afterShares, beforeShares);// Redeem happened
+    }
+
+    function testBuyAssetReverts() public {
+        vm.prank(testMinter);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsmTester.buyAsset(0, testMinter, 2);
+
+        vm.prank(testMinter);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidRecipientAddress.selector));
+        bsmTester.buyAsset(1e18, address(0), 2);
     }
 }
