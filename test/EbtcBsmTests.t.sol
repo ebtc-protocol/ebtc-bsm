@@ -94,4 +94,19 @@ contract EbtcBSMTests is BSMTestBase {
         vm.expectRevert();
         bsmTester.initialize(address(0));
     }
+
+    function testBuyZeroAmount() public {
+        MockAssetToken wrongToken = new MockAssetToken(6);
+        EbtcBSM bsm = new EbtcBSM(
+            address(wrongToken),
+            address(oraclePriceConstraint),
+            address(rateLimitingConstraint),
+            address(new DummyConstraint()),
+            address(mockEbtcToken),
+            address(authority)
+        );
+        vm.prank(testMinter);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsm.buyAsset(1, testMinter, 2);
+    }
 }
