@@ -51,6 +51,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     /// @notice Rate limiting constraint for minting
     IMintingConstraint public rateLimitingConstraint;
 
+    /// @notice Constraint for buying asset tokens
+    IMintingConstraint public buyAssetConstraint;
+
     /// @notice Error for when there are insufficient asset tokens available
     error InsufficientAssetTokens(uint256 required, uint256 available);
 
@@ -74,12 +77,14 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         address _assetToken,
         address _oraclePriceConstraint,
         address _rateLimitingConstraint,
+        address _buyAssetConstraint,
         address _ebtcToken,
         address _governance
     ) {
         require(_assetToken != address(0));
         require(_oraclePriceConstraint != address(0));
         require(_rateLimitingConstraint != address(0));
+        require(_buyAssetConstraint != address(0));
         require(_ebtcToken != address(0));
         require(_governance != address(0));
 
@@ -88,6 +93,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         require(ASSET_TOKEN_PRECISION <= 1e18);
         oraclePriceConstraint = IMintingConstraint(_oraclePriceConstraint);
         rateLimitingConstraint = IMintingConstraint(_rateLimitingConstraint);
+        buyAssetConstraint = IMintingConstraint(_buyAssetConstraint);
         EBTC_TOKEN = IEbtcToken(_ebtcToken);
         _initializeAuthority(_governance);
     }
@@ -140,18 +146,32 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) private view returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         uint256 feeAmountInAssetPrecision = _toAssetPrecision(_feeAmount);
-        _checkTotalAssetsDeposited(ebtcAmountInAssetPrecision);
+        _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
         _assetAmountOut = escrow.previewWithdraw(ebtcAmountInAssetPrecision) - feeAmountInAssetPrecision;
     }
 
     /** @notice This internal function verifies that the escrow has sufficient assets deposited to cover an amount to buy.
-    * @param amountToBuy The amount of assets that is intended to be bought.
+    * @param amountToBuy The amount of assets that is intended to be bought (in asset precision)
     */
-    function _checkTotalAssetsDeposited(uint256 amountToBuy) private view {
+    function _checkBuyAssetConstraints(uint256 amountToBuy) private view {
         // ebtc to asset price is treated as 1 for buyAsset
+        /// @dev totalAssetsDeposited is in asset precision
         uint256 totalAssetsDeposited = escrow.totalAssetsDeposited();
         if (amountToBuy > totalAssetsDeposited) {
             revert InsufficientAssetTokens(amountToBuy, totalAssetsDeposited);
+        }
+
+        bool success;
+        bytes memory errData;
+
+        (success, errData) = buyAssetConstraint.canMint(amountToBuy, address(this));
+        if (!success) {
+            revert IMintingConstraint.MintingConstraintCheckFailed(
+                address(buyAssetConstraint),
+                amountToBuy,
+                address(this),
+                errData
+            );
         }
     }
     
@@ -193,12 +213,14 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
 
-        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;  // 1e8
+        uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
 
         _checkMintingConstraints(_ebtcAmountOut);
+
+        totalMinted += _ebtcAmountOut;
 
         // INVARIANT: _assetAmountIn >= _ebtcAmountOut
         ASSET_TOKEN.safeTransferFrom(
@@ -206,14 +228,13 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
             address(escrow),
             _assetAmountIn // asset precision
         );
-        escrow.onDeposit(assetAmountInNoFee); // assetAmountInNoFee = _assetAmountIn - fee (asset precision)
+        // assetAmountInNoFee = _assetAmountIn - _feeAmount (asset precision)
+        escrow.onDeposit(assetAmountInNoFee);
 
         // slippage check
         if (_ebtcAmountOut < _minOutAmount) {
             revert BelowExpectedMinOutAmount(_minOutAmount, _ebtcAmountOut);
         }
-
-        totalMinted += _ebtcAmountOut;
 
         EBTC_TOKEN.mint(_recipient, _ebtcAmountOut);
 
@@ -234,7 +255,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
 
-        _checkTotalAssetsDeposited(ebtcAmountInAssetPrecision);
+        _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
 
         EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
 
@@ -285,6 +306,29 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _ebtcAmountIn
     ) external view returns (uint256 _assetAmountOut) {
         return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_ebtcAmountIn));
+    }
+
+    /** 
+     * @notice Calculates the amount of eBTC minted for a given amount of asset tokens accounting
+     * for all minting constraints (no fee)
+     * @param _assetAmountIn the total amount intended to be deposited
+     * @return _ebtcAmountOut the estimated eBTC to mint after fees
+     */
+    function previewSellAssetNoFee(
+        uint256 _assetAmountIn
+    ) external view returns (uint256 _ebtcAmountOut) {
+        return _previewSellAsset(_assetAmountIn, 0);
+    }
+
+    /** 
+     * @notice Calculates the net asset amount that can be bought with a given amount of eBTC (no fee)
+     * @param _ebtcAmountIn the total amount intended to be deposited
+     * @return _assetAmountOut the estimated asset to buy after fees
+     */
+    function previewBuyAssetNoFee(
+        uint256 _ebtcAmountIn
+    ) external view returns (uint256 _assetAmountOut) {
+        return _previewBuyAsset(_ebtcAmountIn, 0);
     }
 
     /**
@@ -388,6 +432,16 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         require(_newOraclePriceConstraint != address(0));
         emit IMintingConstraint.MintingConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
         oraclePriceConstraint = IMintingConstraint(_newOraclePriceConstraint);
+    }
+
+    /** @notice Updates the buy asset constraint address
+    * @dev Can only be called by authorized users
+    * @param _newBuyAssetConstraint New address for the buy asset constraint
+    */
+    function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {
+        require(_newBuyAssetConstraint != address(0));
+        emit IMintingConstraint.MintingConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
+        buyAssetConstraint = IMintingConstraint(_newBuyAssetConstraint);
     }
 
     /** @notice Updates the escrow address and initiates an escrow migration

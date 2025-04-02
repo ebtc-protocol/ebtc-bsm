@@ -15,19 +15,25 @@ contract AssetChainlinkAdapterTests is Test {
     function setUp() public {
         usdAssetAggregator = new MockAssetOracle(8);
         btcUsdAggregator = new MockAssetOracle(8);
-        assetChainlinkAdapter = new AssetChainlinkAdapter(usdAssetAggregator, btcUsdAggregator, false);
+        assetChainlinkAdapter = new AssetChainlinkAdapter(
+            usdAssetAggregator, 
+            1 days + 2 hours,
+            btcUsdAggregator,
+            2 hours, 
+            false
+        );
     }
 
     function testGetLatestRound() public {
         usdAssetAggregator.setLatestRoundId(110680464442257320247);
         usdAssetAggregator.setPrevRoundId(110680464442257320246);
         usdAssetAggregator.setPrice(3983705362408);
-        usdAssetAggregator.setUpdateTime(1706208946);
+        usdAssetAggregator.setUpdateTime(block.timestamp);
 
         btcUsdAggregator.setLatestRoundId(110680464442257320665);
         btcUsdAggregator.setPrevRoundId(110680464442257320664);
         btcUsdAggregator.setPrice(221026137517);
-        btcUsdAggregator.setUpdateTime(1706208947);
+        btcUsdAggregator.setUpdateTime(block.timestamp);
 
         (
             ,
@@ -37,7 +43,7 @@ contract AssetChainlinkAdapterTests is Test {
         ) = assetChainlinkAdapter.latestRoundData();
 
         assertEq(answer, 18023684470808785517);
-        assertEq(updatedAt, 1706208946);
+        assertEq(updatedAt, block.timestamp);
     }
     
     //test that the conversion is correct using known numbers
@@ -75,7 +81,13 @@ contract AssetChainlinkAdapterTests is Test {
     }
 
     function testConversionWorksInverted() public {
-        assetChainlinkAdapter = new AssetChainlinkAdapter(usdAssetAggregator, btcUsdAggregator, true);
+        assetChainlinkAdapter = new AssetChainlinkAdapter(
+            usdAssetAggregator, 
+            1 days + 2 hours,
+            btcUsdAggregator,
+            2 hours, 
+            true
+        );
 
         // Asset > BTC
         // ASSET
@@ -118,7 +130,13 @@ contract AssetChainlinkAdapterTests is Test {
         address assetUsdFeed = 0x8350b7De6a6a2C1368E7D4Bd968190e13E354297;
         address btcUsdFeed = 0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c;
         
-        AssetChainlinkAdapter adapter = new AssetChainlinkAdapter(AggregatorV3Interface(assetUsdFeed), AggregatorV3Interface(btcUsdFeed), false);
+        AssetChainlinkAdapter adapter = new AssetChainlinkAdapter(
+            AggregatorV3Interface(assetUsdFeed), 
+            1 days + 2 hours,
+            AggregatorV3Interface(btcUsdFeed), 
+            2 hours,
+            false
+        );
         
         (uint80 roundID, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = adapter.latestRoundData();
         emit log_named_int("Converted Asset to BTC price", answer);
