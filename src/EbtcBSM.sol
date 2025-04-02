@@ -11,7 +11,7 @@ import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {IEscrow} from "./Dependencies/IEscrow.sol";
-import {console} from "forge-std/console.sol";
+
 /**
 * @title eBTC Stability Module (BSM) Contract
 * @notice Facilitates bi-directional exchange between eBTC and other BTC-denominated assets with no slippage.
