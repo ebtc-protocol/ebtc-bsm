@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "./BSMTestBase.sol";
 import {OraclePriceConstraint} from"../src/OraclePriceConstraint.sol";
 import {RateLimitingConstraint} from"../src/RateLimitingConstraint.sol";
-import {IMintingConstraint} from "../src/Dependencies/IMintingConstraint.sol";
+import {IConstraint} from "../src/Dependencies/IConstraint.sol";
 
 contract SellAssetTests is BSMTestBase {
      function testSellAssetSuccess(uint256 numTokens, uint256 fraction) public {
@@ -100,7 +100,7 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(testMinter);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IMintingConstraint.MintingConstraintCheckFailed.selector, 
+                IConstraint.ConstraintCheckFailed.selector, 
                 address(rateLimitingConstraint),
                 ebtcAmount,
                 address(bsmTester),
@@ -133,7 +133,7 @@ contract SellAssetTests is BSMTestBase {
         
         vm.expectRevert(
             abi.encodeWithSelector(
-                IMintingConstraint.MintingConstraintCheckFailed.selector,
+                IConstraint.ConstraintCheckFailed.selector,
                 address(oraclePriceConstraint),
                 ebtcAmount,//must be in ebtc precision
                 address(bsmTester),
