@@ -2,13 +2,13 @@
 pragma solidity ^0.8.25;
 
 import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
-import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
+import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {IActivePoolObserver} from "./Dependencies/IActivePoolObserver.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 
 /// @title Rate Limiting Constraint for Minting
 /// @notice This contract enforces rate-limiting constraints on minting operations to control inflation and supply of tokens.
-contract RateLimitingConstraint is IMintingConstraint, AuthNoOwner {
+contract RateLimitingConstraint is IConstraint, AuthNoOwner {
     /// @notice Minting configuration structure for each minter
     struct MintingConfig {
         uint256 relativeCapBPS;  // Basis points of total supply allowed to mint
@@ -45,11 +45,11 @@ contract RateLimitingConstraint is IMintingConstraint, AuthNoOwner {
 
     /// @notice Checks if the minting amount is within the allowed cap for the minter
     /// @param _amount The amount to be minted
-    /// @param _minter The address of the minter
+    /// @param _bsm The address of the minter
     /// @return bool True if the minting is within the cap, false otherwise
     /// @return bytes Encoded error data if the mint is above the cap
-    function canMint(uint256 _amount, address _minter) external view returns (bool, bytes memory) {
-        MintingConfig memory cap = mintingConfig[_minter];
+    function canProcess(uint256 _amount, address _bsm) external view returns (bool, bytes memory) {
+        MintingConfig memory cap = mintingConfig[_bsm];
         uint256 maxMint;
 
         if (cap.useAbsoluteCap) {
@@ -60,7 +60,7 @@ contract RateLimitingConstraint is IMintingConstraint, AuthNoOwner {
             maxMint = (totalEbtcSupply * cap.relativeCapBPS) / BPS;
         }
 
-        uint256 newTotalToMint = IEbtcBSM(_minter).totalMinted() + _amount;
+        uint256 newTotalToMint = IEbtcBSM(_bsm).totalMinted() + _amount;
 
         if (newTotalToMint > maxMint) {
             return (false, abi.encodeWithSelector(AboveMintingCap.selector, _amount, newTotalToMint, maxMint));

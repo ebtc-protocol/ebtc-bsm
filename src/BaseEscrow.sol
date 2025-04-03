@@ -166,7 +166,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
         }
     }
 
-    /// @notice Claim reward tokens and/or other tokens sent to this constract
+    /// @notice Claim reward tokens and/or other tokens sent to this contract
     function claimTokens(address token, uint256 amount) external requiresAuth {
         _claimTokens(token, amount);
     }
