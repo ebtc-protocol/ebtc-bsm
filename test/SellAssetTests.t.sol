@@ -68,6 +68,8 @@ contract SellAssetTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(100);
 
+        assertEq(bsmTester.previewSellAssetNoFee(assetTokenAmount), ebtcAmount);
+
         vm.expectEmit();
         emit IEbtcBSM.AssetSold(assetTokenAmount, ebtcAmount, 0);
 
