@@ -68,6 +68,11 @@ contract GovernanceTests is BSMTestBase {
         vm.prank(testMinter);
         bsmTester.setOraclePriceConstraint(address(newConstraint));
 
+        // TEST: address(0)
+        vm.expectRevert();
+        vm.prank(techOpsMultisig);
+        bsmTester.setOraclePriceConstraint(address(0));
+
         // TEST: successfully setting constraint + event
         assertNotEq(address(bsmTester.oraclePriceConstraint()), address(newConstraint));
         address oldConstraint = address(bsmTester.oraclePriceConstraint());
@@ -89,6 +94,11 @@ contract GovernanceTests is BSMTestBase {
         vm.prank(testMinter);
         bsmTester.setRateLimitingConstraint(address(newConstraint));
 
+        // TEST: address(0)
+        vm.expectRevert("Invalid address");
+        vm.prank(techOpsMultisig);
+        bsmTester.setRateLimitingConstraint(address(0));
+
         // TEST: successfully setting constraint + event
         assertNotEq(address(bsmTester.rateLimitingConstraint()), address(newConstraint));
         address oldConstraint = address(bsmTester.rateLimitingConstraint());
@@ -106,6 +116,11 @@ contract GovernanceTests is BSMTestBase {
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         bsmTester.setBuyAssetConstraint(address(newConstraint));
+
+        // TEST: address(0)
+        vm.expectRevert();
+        vm.prank(techOpsMultisig);
+        bsmTester.setBuyAssetConstraint(address(0));
 
         // TEST: successfully setting constraint + event
         assertNotEq(address(bsmTester.buyAssetConstraint()), address(newConstraint));

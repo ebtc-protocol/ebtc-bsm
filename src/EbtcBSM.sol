@@ -417,7 +417,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newRateLimitingConstraint New address for the rate limiting constraint
     */
-    function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {//TODO test
+    function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {
         require(_newRateLimitingConstraint != address(0), "Invalid address");
         emit IConstraint.ConstraintUpdated(address(rateLimitingConstraint), _newRateLimitingConstraint);
         rateLimitingConstraint = IConstraint(_newRateLimitingConstraint);
@@ -427,7 +427,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newOraclePriceConstraint New address for the oracle price constraint
     */
-    function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {//TODO test
+    function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {
         require(_newOraclePriceConstraint != address(0));
         emit IConstraint.ConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
         oraclePriceConstraint = IConstraint(_newOraclePriceConstraint);
@@ -437,7 +437,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @dev Can only be called by authorized users
     * @param _newBuyAssetConstraint New address for the buy asset constraint
     */
-    function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {//TODO test
+    function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {
         require(_newBuyAssetConstraint != address(0));
         emit IConstraint.ConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
         buyAssetConstraint = IConstraint(_newBuyAssetConstraint);
