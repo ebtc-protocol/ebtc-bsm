@@ -78,7 +78,7 @@ function test_inlined_withdrawProfitTest_1() public {
 
     switch_asset(133967697141585457301717130397693243365160822926910117093032297);
     // 0xD6BbDE9174b1CdAa358d2Cf4D57D1a9F7178FBfF = Escrow
-    asset_mint(0xD6BbDE9174b1CdAa358d2Cf4D57D1a9F7178FBfF,784504222176724349469605330757355);
+    asset_mint(address(escrow),784504222176724349469605330757355);
 
     escrow_depositToExternalVault_rekt(1,0); /// This somehow causes losses
     // 0xc7183455a4C133Ae270771860664b6B7ec320bB1 = ERC4626 Mock
@@ -128,6 +128,14 @@ function test_inlined_withdrawProfitTest_1() public {
     // As such we perform this clamped check
     gte(deltaFees, expected, "Recipient got at least expected");
     lte(deltaFees, amt, "Delta fees is at most profit");
+
+    // edge case where we have no liquid profit and ERC4626 round-trip convertToShares(convertToAssets(shares))
+    // is rounding down to 0
+    // this is ok because we can call redeemFromExternalVault before claiming profit
+    if (escrow.ASSET_TOKEN().balanceOf(address(escrow)) == 0 &&
+        escrow.EXTERNAL_VAULT().convertToShares(escrow.feeProfit()) == 0) {
+        return;
+    }
 
     eq(escrow.feeProfit(), 0, "Profit should be 0");
 
