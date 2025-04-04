@@ -72,8 +72,9 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
 
     /// @notice withdraw profit to FEE_RECIPIENT
     /// @param _profitAmount The amount of profit to withdraw
-    function _withdrawProfit(uint256 _profitAmount) internal virtual {
+    function _withdrawProfit(uint256 _profitAmount) internal virtual returns (uint256){
         ASSET_TOKEN.safeTransfer(FEE_RECIPIENT, _profitAmount);
+        return _profitAmount;
     }
 
     /// @notice Prepares the escrow for migration
@@ -85,10 +86,10 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     function _claimProfit() internal {
         uint256 profit = feeProfit();
         if (profit > 0) {
-            _withdrawProfit(profit);
+            uint256 profitWithdrawn = _withdrawProfit(profit);
             // INVARIANT: total balance must be >= deposit amount
             require(_totalBalance() >= totalAssetsDeposited);
-            emit ProfitClaimed(profit);
+            emit ProfitClaimed(profitWithdrawn);
         }        
     }
 
