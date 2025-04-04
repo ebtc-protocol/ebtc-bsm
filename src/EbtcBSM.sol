@@ -256,9 +256,12 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
 
-        EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
+        /// @dev this prevents burning of eBTC below asset precision
+        uint256 ebtcToBurn = _toEbtcPrecision(ebtcAmountInAssetPrecision);
 
-        totalMinted -= _ebtcAmountIn;
+        EBTC_TOKEN.burn(msg.sender, ebtcToBurn);
+
+        totalMinted -= ebtcToBurn;
 
         uint256 redeemedAmount = escrow.onWithdraw(
             ebtcAmountInAssetPrecision
@@ -273,7 +276,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         }
 
         if (_assetAmountOut > 0) {
-            // INVARIANT: _assetAmountOut <= _ebtcAmountIn
+            // INVARIANT: _assetAmountOut <= ebtcToBurn
             ASSET_TOKEN.safeTransferFrom(
                 address(escrow),
                 _recipient,
@@ -281,7 +284,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
             );
         }
 
-        emit AssetBought(_ebtcAmountIn, _assetAmountOut, feeAmountInAssetPrecision);
+        emit AssetBought(ebtcToBurn, _assetAmountOut, feeAmountInAssetPrecision);
     }
 
     /** 

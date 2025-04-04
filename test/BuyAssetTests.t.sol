@@ -28,20 +28,23 @@ contract BuyAssetTests is BSMTestBase {
         _checkEbtcBalance(testMinter, ebtcAmount);
         _checkEbtcBalance(testBuyer, buyerBalance);
 
+        uint256 expectedOut = (buyAmount * _assetTokenPrecision() / 1e18);
+        uint256 expectedEbtcBurn = expectedOut * 1e18 / _assetTokenPrecision();
+
         // TEST: make sure preview is correct
-        assertEq(bsmTester.previewBuyAsset(buyAmount), assetTokenAmount / 2);
+        assertEq(bsmTester.previewBuyAsset(buyAmount), expectedOut);
 
         vm.recordLogs();
         vm.prank(testBuyer);
 
-        assertEq(bsmTester.buyAsset(buyAmount, testBuyer, 0), assetTokenAmount / 2);
+        assertEq(bsmTester.buyAsset(buyAmount, testBuyer, 0), expectedOut);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         assertEq(entries[0].topics[0], keccak256("Transfer(address,address,uint256)"));
         assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
         assertEq(entries[2].topics[0], keccak256("AssetBought(uint256,uint256,uint256)"));
-        _checkAssetTokenBalance(testBuyer, assetTokenAmount / 2);
-        _checkEbtcBalance(testBuyer, buyerBalance - buyAmount);
+        _checkAssetTokenBalance(testBuyer, expectedOut);
+        _checkEbtcBalance(testBuyer, buyerBalance - expectedEbtcBurn);
     }
 
     function testBuyAssetFee(
