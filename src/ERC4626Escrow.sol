@@ -111,9 +111,9 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
     /// @notice Overrides _withdrawProfit from BaseEscrow to manage liquidity from the external vault
     /// @param _profitAmount The amount of profit to withdraw
-    function _withdrawProfit(uint256 _profitAmount) internal override {
+    function _withdrawProfit(uint256 _profitAmount) internal override returns (uint256) {
         uint256 redeemedAmount = _ensureLiquidity(_profitAmount);
-        super._withdrawProfit(redeemedAmount);
+        return super._withdrawProfit(redeemedAmount);
     }
 
     /// @notice Preview the amount of assets that would be withdrawn for a given amount of shares
