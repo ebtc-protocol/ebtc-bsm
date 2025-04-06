@@ -20,7 +20,7 @@ import {IEscrow} from "./Dependencies/IEscrow.sol";
 contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     using SafeERC20 for IERC20;
 
-    uint256 internal immutable ASSET_TOKEN_PRECISION;
+    uint256 public immutable ASSET_TOKEN_PRECISION;
 
     /// @notice Basis points constant for percentage calculations
     uint256 public constant BPS = 10000;
@@ -245,7 +245,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     function _buyAsset(
         uint256 _ebtcAmountIn, // ebtc precision
         address _recipient,
-        uint256 _feeAmount,    // ebtc precision
+        uint256 _feeAmount,    // asset precision
         uint256 _minOutAmount  // asset precision
     ) internal returns (uint256 _assetAmountOut) { // asset precision
         if (_ebtcAmountIn == 0) revert ZeroAmount();
@@ -253,7 +253,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         if (ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
-
+        /// @audit Can fee result in a different value?
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
 
         /// @dev this prevents burning of eBTC below asset precision
@@ -266,7 +266,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 redeemedAmount = escrow.onWithdraw(
             ebtcAmountInAssetPrecision
         );
-        uint256 feeAmountInAssetPrecision = _toAssetPrecision(_feeAmount);
+        uint256 feeAmountInAssetPrecision = _feeAmount;
 
         _assetAmountOut = redeemedAmount - feeAmountInAssetPrecision; // asset precision
 
@@ -307,7 +307,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     function previewBuyAsset(
         uint256 _ebtcAmountIn
     ) external view returns (uint256 _assetAmountOut) {
-        return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_ebtcAmountIn));
+        return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(_toAssetPrecision(_ebtcAmountIn)));
     }
 
     /** 
@@ -361,7 +361,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         address _recipient,
         uint256 _minOutAmount
     ) external whenNotPaused returns (uint256 _assetAmountOut) {
-        return _buyAsset(_ebtcAmountIn, _recipient, _feeToBuy(_ebtcAmountIn), _minOutAmount);
+        return _buyAsset(_ebtcAmountIn, _recipient, _feeToBuy(_toAssetPrecision(_ebtcAmountIn)), _minOutAmount);
     }
 
     /**
