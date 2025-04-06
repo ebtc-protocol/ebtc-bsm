@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import {BaseEscrow} from "./BaseEscrow.sol";
 import {IERC4626Escrow} from "./Dependencies/IERC4626Escrow.sol";
@@ -145,7 +145,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     }
 
     function _claimTokens(address token, uint256 amount) internal override {
-        require(token != address(EXTERNAL_VAULT));
+        require(token != address(EXTERNAL_VAULT), Token());
         super._claimTokens(token, amount);
     }
 
