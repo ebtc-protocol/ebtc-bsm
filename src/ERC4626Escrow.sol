@@ -88,6 +88,13 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
             }
             // amountRedeemed can be less than deficit because of rounding
             _amountRedeemed = liquidBalance + redeemed;
+
+            /// @audit Some vaults (most OOS) do not accrue their assets in `convertToShares`
+            /// This can cause `redeem` to withdraw more than requested
+            /// To prevent abuse, we cap at deficit
+            if(redeemed > deficit) {
+                _amountRedeemed = liquidBalance + deficit; // Cap for edge case
+            }
         } else {
             // We have liquid amount so we return it
             _amountRedeemed = _amountRequired;
