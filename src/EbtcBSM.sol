@@ -257,9 +257,9 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         _checkBuyAssetConstraints(ebtcAmountInAssetPrecision);
 
-        EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
-
         totalMinted -= _ebtcAmountIn;
+
+        EBTC_TOKEN.burn(msg.sender, _ebtcAmountIn);
 
         uint256 redeemedAmount = escrow.onWithdraw(
             ebtcAmountInAssetPrecision
