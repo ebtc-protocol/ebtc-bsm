@@ -213,30 +213,31 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidRecipientAddress();
+
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
         // Convert _assetAmountIn to ebtc precision (1e18)
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
-
-        _checkMintingConstraints(_ebtcAmountOut);
-
-        totalMinted += _ebtcAmountOut;
-
-        // INVARIANT: _assetAmountIn >= _ebtcAmountOut
-        ASSET_TOKEN.safeTransferFrom(
-            msg.sender,
-            address(escrow),
-            _assetAmountIn // asset precision
-        );
-        // assetAmountInNoFee = _assetAmountIn - _feeAmount (asset precision)
-        escrow.onDeposit(assetAmountInNoFee);
 
         // slippage check
         if (_ebtcAmountOut < _minOutAmount) {
             revert BelowExpectedMinOutAmount(_minOutAmount, _ebtcAmountOut);
         }
 
+        _checkMintingConstraints(_ebtcAmountOut);
+
+        totalMinted += _ebtcAmountOut;
+
         EBTC_TOKEN.mint(_recipient, _ebtcAmountOut);
+
+        escrow.onDeposit(assetAmountInNoFee);
+
+        // INVARIANT: _assetAmountIn >= _ebtcAmountOut
+        ASSET_TOKEN.safeTransferFrom(
+            msg.sender,
+            address(escrow),
+            _assetAmountIn // asset precision
+        );       
 
         emit AssetSold(_assetAmountIn, _ebtcAmountOut, _feeAmount);
     }
