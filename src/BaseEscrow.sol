@@ -18,6 +18,8 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     uint256 public totalAssetsDeposited;
 
     error CallerNotBSM();
+    error Token();
+    error LossCheck();
 
     /// @notice Modifier to restrict function calls to the BSM
     modifier onlyBSM() {
@@ -87,7 +89,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
         if (profit > 0) {
             _withdrawProfit(profit);
             // INVARIANT: total balance must be >= deposit amount
-            require(_totalBalance() >= totalAssetsDeposited);
+            require(_totalBalance() >= totalAssetsDeposited, LossCheck());
             emit ProfitClaimed(profit);
         }        
     }
@@ -160,7 +162,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     }
 
     function _claimTokens(address token, uint256 amount) internal virtual {
-        require(token != address(ASSET_TOKEN));
+        require(token != address(ASSET_TOKEN), Token());
         if (amount > 0) {
             IERC20(token).safeTransfer(FEE_RECIPIENT, amount);
         }
