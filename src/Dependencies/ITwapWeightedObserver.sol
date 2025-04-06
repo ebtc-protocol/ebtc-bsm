@@ -1,5 +1,5 @@
 // SPDX-License Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.29;
 
 interface ITwapWeightedObserver {
     // NOTE: Packing manually is cheaper, but this is simpler to understand and follow
