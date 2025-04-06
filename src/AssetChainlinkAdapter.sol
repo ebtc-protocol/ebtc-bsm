@@ -40,6 +40,12 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
     int256 internal immutable ASSET_USD_PRECISION;
     int256 internal immutable BTC_USD_PRECISION;
 
+    error WrongDecimals();
+
+    error OracleRound();
+    error OracleAnswer();
+    error OracleStale();
+
     /**
      * @notice Contract constructor
      * @param _assetUsdClFeed AggregatorV3Interface contract feed for Asset -> USD
@@ -58,8 +64,8 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
         BTC_FEED_FRESHNESS = _maxBtcFreshness;
         INVERTED = _inverted;
 
-        require(ASSET_USD_CL_FEED.decimals() <= MAX_DECIMALS);
-        require(BTC_USD_CL_FEED.decimals() <= MAX_DECIMALS);
+        require(ASSET_USD_CL_FEED.decimals() <= MAX_DECIMALS, WrongDecimals());
+        require(BTC_USD_CL_FEED.decimals() <= MAX_DECIMALS, WrongDecimals());
 
         ASSET_USD_PRECISION = int256(10 ** ASSET_USD_CL_FEED.decimals());
         BTC_USD_PRECISION = int256(10 ** BTC_USD_CL_FEED.decimals());
@@ -99,9 +105,9 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
     ) private view returns (int256 answer, uint256 updatedAt) {
         uint80 feedRoundId;
         (feedRoundId, answer, , updatedAt, ) = _feed.latestRoundData();
-        require(feedRoundId > 0);
-        require(answer > 0);
-        require((block.timestamp - updatedAt) <= maxFreshness);
+        require(feedRoundId > 0, OracleRound());
+        require(answer > 0, OracleAnswer());
+        require((block.timestamp - updatedAt) <= maxFreshness, OracleStale());
     }
 
     /// @dev Needed because we inherit from AggregatorV3Interface
