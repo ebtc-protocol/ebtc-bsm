@@ -32,8 +32,7 @@ contract BSMTestBase is BSMBase, Test {
     }
 
     function _feeToBuy(uint256 amount) internal view returns (uint256) {
-        uint256 feeAmount = Math.mulDiv(amount, bsmTester.feeToBuyBPS(), bsmTester.BPS(), Math.Rounding.Ceil);
-        return feeAmount * _assetTokenPrecision() / 1e18;
+        return Math.mulDiv(amount, bsmTester.feeToBuyBPS(), bsmTester.BPS(), Math.Rounding.Ceil);
     }
 
     function _feeToSell(uint256 amount) internal view returns (uint256) {

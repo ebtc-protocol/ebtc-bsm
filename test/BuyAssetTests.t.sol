@@ -83,7 +83,7 @@ contract BuyAssetTests is BSMTestBase {
         _mintEbtc(testBuyer, ebtcBuyAmount);
 
         uint256 prevTotalAssetsDeposited = escrow.totalAssetsDeposited();
-        uint256 fee = _feeToBuy(ebtcBuyAmount);
+        uint256 fee = _feeToBuy(assetTokenBuyAmount);
         uint256 expectedOut = assetTokenBuyAmount - fee;
 
         // TEST: make sure preview is correct
