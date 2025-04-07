@@ -35,6 +35,9 @@ contract RateLimitingConstraint is IConstraint, AuthNoOwner {
         uint256 maxMint
     );
 
+    /// @notice Error thrown when trying to set an invalid minting config
+    error InvalidMintingConfig();
+
     /// @notice Contract constructor
     /// @param _activePoolObserver Address of the active pool observer
     /// @param _governance Address of the governance mechanism
@@ -81,7 +84,7 @@ contract RateLimitingConstraint is IConstraint, AuthNoOwner {
     /// @param _minter The address of the minter
     /// @param _newMintingConfig The new minting configuration for the minter
     function setMintingConfig(address _minter, MintingConfig calldata _newMintingConfig) external requiresAuth {
-        require(_newMintingConfig.relativeCapBPS <= BPS);
+        require(_newMintingConfig.relativeCapBPS <= BPS, InvalidMintingConfig());
         emit MintingConfigUpdated(_minter, mintingConfig[_minter], _newMintingConfig);
         mintingConfig[_minter] = _newMintingConfig;
     }

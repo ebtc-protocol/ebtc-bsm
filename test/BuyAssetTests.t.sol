@@ -216,7 +216,7 @@ contract BuyAssetTests is BSMTestBase {
         bsmTester.buyAsset(0, testMinter, 2);
 
         vm.prank(testMinter);
-        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidRecipientAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         bsmTester.buyAsset(1e18, address(0), 2);
     }
 }

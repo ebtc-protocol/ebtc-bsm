@@ -64,8 +64,11 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     /// @notice Error for when the amount passed into sellAsset or buyAsset is zero
     error ZeroAmount();
 
-    /// @notice Error for when the recipient address is the zero address
-    error InvalidRecipientAddress();
+    /// @notice Error for when an address is the zero address
+    error InvalidAddress();
+
+    /// @notice Error for when trying to set an invalid fee
+    error InvalidFee();
 
     /** @notice Constructs the EbtcBSM contract
     * @param _assetToken Address of the underlying asset token
@@ -213,7 +216,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _minOutAmount // ebtc precision
     ) internal returns (uint256 _ebtcAmountOut) { // ebtc precision
         if (_assetAmountIn == 0) revert ZeroAmount();
-        if (_recipient == address(0)) revert InvalidRecipientAddress();
+        if (_recipient == address(0)) revert InvalidAddress();
 
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
@@ -252,7 +255,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _minOutAmount  // asset precision
     ) internal returns (uint256 _assetAmountOut) { // asset precision
         if (_ebtcAmountIn == 0 || _ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
-        if (_recipient == address(0)) revert InvalidRecipientAddress();
+        if (_recipient == address(0)) revert InvalidAddress();
  
         /// @dev ok to pass amount without fee to constraint
         /// fee amount can be deducted by the constraint if necessary
@@ -412,7 +415,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _feeToSellBPS Fee in basis points
     */
     function setFeeToSell(uint256 _feeToSellBPS) external requiresAuth {
-        require(_feeToSellBPS <= MAX_FEE);
+        require(_feeToSellBPS <= MAX_FEE, InvalidFee());
         emit FeeToSellUpdated(feeToSellBPS, _feeToSellBPS);
         feeToSellBPS = _feeToSellBPS;
     }
@@ -422,7 +425,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _feeToBuyBPS Fee in basis points
     */
     function setFeeToBuy(uint256 _feeToBuyBPS) external requiresAuth {
-        require(_feeToBuyBPS <= MAX_FEE);
+        require(_feeToBuyBPS <= MAX_FEE, InvalidFee());
         emit FeeToBuyUpdated(feeToBuyBPS, _feeToBuyBPS);
         feeToBuyBPS = _feeToBuyBPS;
     }
@@ -432,7 +435,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _newRateLimitingConstraint New address for the rate limiting constraint
     */
     function setRateLimitingConstraint(address _newRateLimitingConstraint) external requiresAuth {
-        require(_newRateLimitingConstraint != address(0), "Invalid address");
+        require(_newRateLimitingConstraint != address(0), InvalidAddress());
         emit IConstraint.ConstraintUpdated(address(rateLimitingConstraint), _newRateLimitingConstraint);
         rateLimitingConstraint = IConstraint(_newRateLimitingConstraint);
     }
@@ -442,7 +445,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _newOraclePriceConstraint New address for the oracle price constraint
     */
     function setOraclePriceConstraint(address _newOraclePriceConstraint) external requiresAuth {
-        require(_newOraclePriceConstraint != address(0));
+        require(_newOraclePriceConstraint != address(0), InvalidAddress());
         emit IConstraint.ConstraintUpdated(address(oraclePriceConstraint), _newOraclePriceConstraint);
         oraclePriceConstraint = IConstraint(_newOraclePriceConstraint);
     }
@@ -452,7 +455,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _newBuyAssetConstraint New address for the buy asset constraint
     */
     function setBuyAssetConstraint(address _newBuyAssetConstraint) external requiresAuth {
-        require(_newBuyAssetConstraint != address(0));
+        require(_newBuyAssetConstraint != address(0), InvalidAddress());
         emit IConstraint.ConstraintUpdated(address(buyAssetConstraint), _newBuyAssetConstraint);
         buyAssetConstraint = IConstraint(_newBuyAssetConstraint);
     }
@@ -462,7 +465,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _newEscrow New escrow address
     */
     function updateEscrow(address _newEscrow) external requiresAuth {
-        require(_newEscrow != address(0));
+        require(_newEscrow != address(0), InvalidAddress());
 
         uint256 totalBalance = escrow.totalBalance();
         if (totalBalance > 0) {

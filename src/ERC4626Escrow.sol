@@ -145,7 +145,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     }
 
     function _claimTokens(address token, uint256 amount) internal override {
-        require(token != address(EXTERNAL_VAULT), Token());
+        require(token != address(EXTERNAL_VAULT), InvalidToken());
         super._claimTokens(token, amount);
     }
 

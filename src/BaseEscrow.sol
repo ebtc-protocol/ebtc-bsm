@@ -18,7 +18,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     uint256 public totalAssetsDeposited;
 
     error CallerNotBSM();
-    error Token();
+    error InvalidToken();
     error LossCheck();
 
     /// @notice Modifier to restrict function calls to the BSM
@@ -163,7 +163,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     }
 
     function _claimTokens(address token, uint256 amount) internal virtual {
-        require(token != address(ASSET_TOKEN), Token());
+        require(token != address(ASSET_TOKEN), InvalidToken());
         if (amount > 0) {
             IERC20(token).safeTransfer(FEE_RECIPIENT, amount);
         }

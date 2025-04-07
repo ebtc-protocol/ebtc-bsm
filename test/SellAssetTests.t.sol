@@ -85,7 +85,7 @@ contract SellAssetTests is BSMTestBase {
 
     function testSellTokenFailureInvalidRecipient() public {
         vm.prank(testMinter);
-        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidRecipientAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         bsmTester.sellAsset(1e18, address(0), 2);
     }
 
