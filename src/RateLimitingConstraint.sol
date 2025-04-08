@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
 import {IConstraint} from "./Dependencies/IConstraint.sol";
@@ -34,6 +34,9 @@ contract RateLimitingConstraint is IConstraint, AuthNoOwner {
         uint256 newTotalToMint,
         uint256 maxMint
     );
+
+    /// @notice Error thrown when trying to set an invalid minting config
+    error InvalidMintingConfig();
 
     /// @notice Contract constructor
     /// @param _activePoolObserver Address of the active pool observer
@@ -81,7 +84,7 @@ contract RateLimitingConstraint is IConstraint, AuthNoOwner {
     /// @param _minter The address of the minter
     /// @param _newMintingConfig The new minting configuration for the minter
     function setMintingConfig(address _minter, MintingConfig calldata _newMintingConfig) external requiresAuth {
-        require(_newMintingConfig.relativeCapBPS <= BPS);
+        require(_newMintingConfig.relativeCapBPS <= BPS, InvalidMintingConfig());
         emit MintingConfigUpdated(_minter, mintingConfig[_minter], _newMintingConfig);
         mintingConfig[_minter] = _newMintingConfig;
     }

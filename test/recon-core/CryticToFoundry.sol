@@ -25,4 +25,15 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     function test_crytic() public {
         bsmTester_updateEscrow();
     }
+
+    // forge test --match-test test_property_total_minted_eq_total_asset_deposits_0 -vvv 
+    function test_property_total_minted_eq_total_asset_deposits_0() public {
+
+        bsmTester_sellAsset(2);
+
+        bsmTester_buyAsset(10000009564);
+
+        property_total_minted_eq_total_asset_deposits();
+
+    }
 }

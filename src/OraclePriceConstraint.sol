@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
 import {IConstraint} from "./Dependencies/IConstraint.sol";
@@ -41,6 +41,9 @@ contract OraclePriceConstraint is IConstraint, AuthNoOwner {
 
     /// @notice Error thrown when the asset price is below the minimum required for minting
     error BelowMinPrice(uint256 assetPrice, uint256 minPrice);
+
+    /// @notice Error thrown when trying to set an invalid min price
+    error InvalidMinPrice();
 
     /// @notice Contract constructor
     /// @param _assetFeed Address of the oracle price feed
@@ -97,7 +100,7 @@ contract OraclePriceConstraint is IConstraint, AuthNoOwner {
     /// @dev Can only be called by authorized users
     /// @param _minPriceBPS The new minimum price, in basis points
     function setMinPrice(uint256 _minPriceBPS) external requiresAuth {
-        require(_minPriceBPS <= BPS);
+        require(_minPriceBPS <= BPS, InvalidMinPrice());
         emit MinPriceUpdated(minPriceBPS, _minPriceBPS);
         minPriceBPS = _minPriceBPS;
     }

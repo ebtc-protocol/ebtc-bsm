@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import "./BSMTestBase.sol";
 import "../src/RateLimitingConstraint.sol";
@@ -25,7 +25,7 @@ contract GovernanceTests is BSMTestBase {
 
         // TEST: can't set above max fee
         uint256 maxFee = bsmTester.MAX_FEE();
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidFee.selector));
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToBuy(maxFee + 1);
 
@@ -45,7 +45,7 @@ contract GovernanceTests is BSMTestBase {
 
         // TEST: can't set above max fee
         uint256 maxFee = bsmTester.MAX_FEE();
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidFee.selector));
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToSell(maxFee + 1);
 
@@ -69,7 +69,7 @@ contract GovernanceTests is BSMTestBase {
         bsmTester.setOraclePriceConstraint(address(newConstraint));
 
         // TEST: address(0)
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         vm.prank(techOpsMultisig);
         bsmTester.setOraclePriceConstraint(address(0));
 
@@ -95,7 +95,7 @@ contract GovernanceTests is BSMTestBase {
         bsmTester.setRateLimitingConstraint(address(newConstraint));
 
         // TEST: address(0)
-        vm.expectRevert("Invalid address");
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         vm.prank(techOpsMultisig);
         bsmTester.setRateLimitingConstraint(address(0));
 
@@ -118,7 +118,7 @@ contract GovernanceTests is BSMTestBase {
         bsmTester.setBuyAssetConstraint(address(newConstraint));
 
         // TEST: address(0)
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         vm.prank(techOpsMultisig);
         bsmTester.setBuyAssetConstraint(address(0));
 
@@ -136,11 +136,21 @@ contract GovernanceTests is BSMTestBase {
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         rateLimitingConstraint.setMintingConfig(address(bsmTester), RateLimitingConstraint.MintingConfig(0, 0, false));
+
+        uint256 bps = bsmTester.BPS();
+
+        vm.expectRevert(abi.encodeWithSelector(RateLimitingConstraint.InvalidMintingConfig.selector));
+        vm.prank(techOpsMultisig);
+        rateLimitingConstraint.setMintingConfig(address(bsmTester), RateLimitingConstraint.MintingConfig(bps + 1, 0, false));    
     }
 
     function testUpdateEscrow() public {
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
+        bsmTester.updateEscrow(address(0));
+
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
+        vm.prank(techOpsMultisig);
         bsmTester.updateEscrow(address(0));
     }
 
@@ -151,7 +161,7 @@ contract GovernanceTests is BSMTestBase {
         vm.prank(testMinter);
         oraclePriceConstraint.setMinPrice(bps);
 
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(OraclePriceConstraint.InvalidMinPrice.selector));
         vm.prank(techOpsMultisig);
         oraclePriceConstraint.setMinPrice(bps + 1);
     }
