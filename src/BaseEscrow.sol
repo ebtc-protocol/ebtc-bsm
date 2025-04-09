@@ -91,7 +91,7 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
             uint256 profitWithdrawn = _withdrawProfit(profit);
             // INVARIANT: total balance must be >= deposit amount
             require(_totalBalance() >= totalAssetsDeposited, LossCheck());
-            emit ProfitClaimed(profit);
+            emit ProfitClaimed(profitWithdrawn);
         }        
     }
 
