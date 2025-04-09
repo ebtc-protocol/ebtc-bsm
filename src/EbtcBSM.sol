@@ -23,10 +23,10 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     uint256 public immutable ASSET_TOKEN_PRECISION;
 
     /// @notice Basis points constant for percentage calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice Maximum allowable fees in basis points
-    uint256 public constant MAX_FEE = 2000;
+    uint256 public constant MAX_FEE = 2_000;
 
     /// @notice Underlying asset token for eBTC
     IERC20 public immutable ASSET_TOKEN;
@@ -146,7 +146,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     function _previewBuyAsset(
-        uint256 _ebtcAmountIn,
         uint256 _feeAmount,
         uint256 _ebtcAmountInAssetPrecision
     ) private view returns (uint256 _assetAmountOut) {
@@ -248,13 +247,12 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
     /// @notice Internal buyAsset function with an expected fee amount
     function _buyAsset(
-        uint256 _ebtcAmountIn, // ebtc precision
         address _recipient,
         uint256 _feeAmount,    // asset precision
         uint256 _ebtcAmountInAssetPrecision,
         uint256 _minOutAmount  // asset precision
     ) internal returns (uint256 _assetAmountOut) { // asset precision
-        if (_ebtcAmountIn == 0 || _ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
+        if (_ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
         if (_recipient == address(0)) revert InvalidAddress();
  
         /// @dev ok to pass amount without fee to constraint
@@ -313,7 +311,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _ebtcAmountIn
     ) external view returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
-        return _previewBuyAsset(_ebtcAmountIn, _feeToBuy(ebtcAmountInAssetPrecision), ebtcAmountInAssetPrecision);
+        return _previewBuyAsset(_feeToBuy(ebtcAmountInAssetPrecision), ebtcAmountInAssetPrecision);
     }
 
     /** 
@@ -336,7 +334,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     function previewBuyAssetNoFee(
         uint256 _ebtcAmountIn
     ) external view returns (uint256 _assetAmountOut) {
-        return _previewBuyAsset(_ebtcAmountIn, 0, _toAssetPrecision(_ebtcAmountIn));
+        return _previewBuyAsset(0, _toAssetPrecision(_ebtcAmountIn));
     }
 
     /**
@@ -369,7 +367,6 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     ) external whenNotPaused returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         return _buyAsset(
-            _ebtcAmountIn, 
             _recipient, 
             _feeToBuy(ebtcAmountInAssetPrecision), 
             ebtcAmountInAssetPrecision, 
@@ -407,7 +404,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _minOutAmount
     ) external whenNotPaused requiresAuth returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
-        return _buyAsset(_ebtcAmountIn, _recipient, 0, ebtcAmountInAssetPrecision, _minOutAmount);
+        return _buyAsset(_recipient, 0, ebtcAmountInAssetPrecision, _minOutAmount);
     }
 
     /** @notice Sets the fee for selling eBTC

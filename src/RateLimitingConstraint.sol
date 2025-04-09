@@ -17,7 +17,7 @@ contract RateLimitingConstraint is IConstraint, AuthNoOwner {
     }
 
     /// @notice Basis points constant for percentage calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice Mapping of minter addresses to their minting configurations
     mapping(address => MintingConfig) internal mintingConfig;
