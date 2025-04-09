@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import "forge-std/Script.sol";
 import {IActivePoolObserver} from "../src/Dependencies/IActivePoolObserver.sol";
