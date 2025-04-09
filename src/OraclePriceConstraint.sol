@@ -62,6 +62,8 @@ contract OraclePriceConstraint is IConstraint, AuthNoOwner {
         (, int256 answer, , uint256 updatedAt, ) = ASSET_FEED.latestRoundData();
 
         if (answer <= 0) revert BadOraclePrice(answer);
+        /// @dev Extra staleness check here in case an actual chainlink feed
+        /// is used here instead of AssetChainlinkAdapter
         if ((block.timestamp - updatedAt) > oracleFreshnessSeconds) {
             revert StaleOraclePrice(updatedAt);
         }

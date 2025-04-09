@@ -124,9 +124,7 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
         uint80 answeredInRound
     ){}
 
-    // latestRoundData should raise "No data present"
-    // if this do not have data to report, instead of returning unset values
-    // which could be misinterpreted as actual reported values. //TODO?
+    /// @notice roundId, startedAt and answeredInRound are not used
     function latestRoundData()
         external
         view

@@ -137,6 +137,8 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     }
 
     /// @notice Prepares the contract for migration by redeeming all shares from the external vault
+    /// @notice We expect to redeem here only if the escrow balance is low. For large escrow balances,
+    /// we will call redeemFromExternalVault beforee a migration to have proper slippage checks.
     function _beforeMigration() internal override {
         uint256 shares = EXTERNAL_VAULT.balanceOf(address(this));
         if (shares > 0) {
