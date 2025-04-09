@@ -23,10 +23,10 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     uint256 public immutable ASSET_TOKEN_PRECISION;
 
     /// @notice Basis points constant for percentage calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice Maximum allowable fees in basis points
-    uint256 public constant MAX_FEE = 2000;
+    uint256 public constant MAX_FEE = 2_000;
 
     /// @notice Underlying asset token for eBTC
     IERC20 public immutable ASSET_TOKEN;

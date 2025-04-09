@@ -13,7 +13,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     using SafeERC20 for IERC20;
 
     /// @notice Basis points representation for calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice The ERC4626 compliant external vault used
     IERC4626 public immutable EXTERNAL_VAULT;
