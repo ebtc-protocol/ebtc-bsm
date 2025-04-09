@@ -124,7 +124,7 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
         uint80 answeredInRound
     ){}
 
-    /// @notice roundId, startedAt and answeredInRound are not used
+    /// @notice `roundId`, `startedAt` and `answeredInRound` are not used
     function latestRoundData()
         external
         view
