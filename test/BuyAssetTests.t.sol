@@ -10,7 +10,7 @@ contract BuyAssetTests is BSMTestBase {
     event AssetBought(uint256 ebtcAmountIn, uint256 assetAmountOut, uint256 feeAmount);
     event FeeToBuyUpdated(uint256 oldFee, uint256 newFee);
 
-    function testBuyAssetSuccess(uint256 numTokens, uint256 fraction) public {
+    function testBuyAssetSuccess(uint256 numTokens, uint256 fraction) public {    
         (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
         uint256 buyerBalance = ebtcAmount * 2;
         _mintAssetToken(testMinter, assetTokenAmount);
@@ -218,5 +218,32 @@ contract BuyAssetTests is BSMTestBase {
         vm.prank(testMinter);
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.InvalidAddress.selector));
         bsmTester.buyAsset(1e18, address(0), 2);
+    }
+
+    function testBuyAssetRoundScenarios(uint256 numTokens, uint256 fraction) public {
+        uint256 amount = 1e6;
+        uint256 assetTokenAmount = 1e18;
+        // Fund bsm to bypass constrains
+        _mintAssetToken(testMinter, assetTokenAmount);
+        _mintEbtc(testBuyer, 1e17);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        // TEST: Basic scenario, rounding returns zero
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsmTester.previewBuyAsset(amount);
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsmTester.buyAsset(amount, testBuyer, 0);
+
+        // TEST: When using small amount fees are ignored because they are less than 1
+        // 1% fee
+        vm.prank(techOpsMultisig);
+        bsmTester.setFeeToBuy(100);
+        //TODO find number to make fees zero
+        console.log("FEETOBUY", bsmTester._feeToBuy(amount));
+        vm.prank(testBuyer);
+        bsmTester.buyAsset(1e17, testBuyer, 0);
+
+        //TEST: selling and buying back slight more
+
     }
 }

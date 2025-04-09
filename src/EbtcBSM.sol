@@ -11,7 +11,7 @@ import {IEbtcToken} from "./Dependencies/IEbtcToken.sol";
 import {IEbtcBSM} from "./Dependencies/IEbtcBSM.sol";
 import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {IEscrow} from "./Dependencies/IEscrow.sol";
-
+import {console} from "forge-std/console.sol";
 /**
 * @title eBTC Stability Module (BSM) Contract
 * @notice Facilitates bi-directional exchange between eBTC and other BTC-denominated assets with no slippage.
@@ -115,7 +115,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _amount Amount of asset tokens to buy
     * @return Fee amount
     */
-    function _feeToBuy(uint256 _amount) private view returns (uint256) {
+    function _feeToBuy(uint256 _amount) public view returns (uint256) {
         return Math.mulDiv(_amount, feeToBuyBPS, BPS, Math.Rounding.Ceil);
     }
 
@@ -150,6 +150,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _feeAmount,
         uint256 _ebtcAmountInAssetPrecision
     ) private view returns (uint256 _assetAmountOut) {
+        if (_ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
         _checkBuyAssetConstraints(_ebtcAmountInAssetPrecision);
         /// @dev feeAmount is already in asset precision
         _assetAmountOut = escrow.previewWithdraw(_ebtcAmountInAssetPrecision) - _feeAmount;
@@ -220,7 +221,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
-        // Convert _assetAmountIn to ebtc precision (1e18)
+        // Convert _assetAmountIn to ebtc precision (1e18) // Because to convert to ebtc precision we always multiply by 1e18 this is never going to be zero
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
 
         // slippage check
