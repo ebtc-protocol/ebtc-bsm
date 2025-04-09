@@ -105,13 +105,17 @@ contract ActivePoolObserverTest is Test {
         // Diff the results
         for(uint256 l; l < obsCount; l++) {
             console2.log("Delta l", l);
-            console2.log("Delta value",  observations_write[l] - observations_view[l]);
+            if(observations_write[l] > observations_view[l]) {
+                console2.log("Delta value",  observations_write[l] - observations_view[l]);
+            } else {
+                console2.log("Delta value",  observations_view[l] - observations_write[l]);
+            }
+            
         }
 
         // Absolute impact
         console2.log("Max Impact BPS", observations_write[0] * 10_000 / observations_view[0]);
         console2.log("Max Impact BPS", observations_write[1] * 10_000 / observations_view[1]);
         console2.log("Max Impact BPS", observations_write[2] * 10_000 / observations_view[2]);
-
     }
 }
