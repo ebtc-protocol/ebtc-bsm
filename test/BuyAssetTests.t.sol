@@ -88,13 +88,12 @@ contract BuyAssetTests is BSMTestBase {
 
         // TEST: make sure preview is correct
         assertEq(bsmTester.previewBuyAsset(ebtcBuyAmount), expectedOut);
-        bsmTester.previewBuyAsset(ebtcBuyAmount);
+
         vm.prank(testBuyer);
         vm.expectEmit(address(bsmTester));
         emit AssetBought(ebtcBuyAmount, expectedOut, fee);
 
         assertEq(bsmTester.buyAsset(ebtcBuyAmount, testBuyer, 0), expectedOut);
-
         _checkEbtcBalance(testBuyer, 0);
         _checkAssetTokenBalance(testBuyer, expectedOut);
 
@@ -130,7 +129,7 @@ contract BuyAssetTests is BSMTestBase {
         vm.prank(testAuthorizedUser);
         assertEq(bsmTester.buyAssetNoFee(ebtcAmount, testAuthorizedUser, 0), assetTokenAmount);
     }
-
+    
     function testBuyAssetFailAboveTotalAssetsDeposited(uint256 numTokens, uint256 fraction) public {
         (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
 
@@ -248,18 +247,12 @@ contract BuyAssetTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToBuy(100);
 
-        vm.prank(testBuyer);
-        bsmTester.buyAsset(1e10, testBuyer, 0);//TODO find culprit of fee = 1 when amountOut is 1 even when fee its 1%
-        
-        // Fund bsm to bypass constrains
         _mintAssetToken(testMinter, tokenAmount);
         _mintEbtc(testBuyer, 1e17);
         vm.prank(testMinter);
         bsmTester.sellAsset(tokenAmount, testMinter, 0);
 
+        vm.prank(testBuyer);
+        assetsOut = bsmTester.buyAsset(1e10, testBuyer, 0);//TODO figure how we want to round tests
     }
 }
-/**
-29313963461606053 assetIn
-29313963461606053 assetOut
- */
