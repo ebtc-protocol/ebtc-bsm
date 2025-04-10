@@ -238,10 +238,9 @@ contract BuyAssetTests is BSMTestBase {
         // 1% fee
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToBuy(100);
-        //TODO find number to make fees zero
-        console.log("FEETOBUY", bsmTester._feeToBuy(amount));
+
         vm.prank(testBuyer);
-        bsmTester.buyAsset(1e17, testBuyer, 0);
+        bsmTester.buyAsset(1e10, testBuyer, 0);
 
         //TEST: selling and buying back slight more
 
