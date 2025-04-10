@@ -222,12 +222,21 @@ contract BuyAssetTests is BSMTestBase {
 
     function testBuyAssetRoundScenarios(uint256 numTokens, uint256 fraction) public {
         uint256 amount = 1e6;
-        uint256 assetTokenAmount = 1e18;
-        // Fund bsm to bypass constrains
+        uint256 tokenAmount = 1e18;
+        //TEST: selling and buying back slight more
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
+        uint256 buyAmount = ebtcAmount + 10;
+
         _mintAssetToken(testMinter, assetTokenAmount);
-        _mintEbtc(testBuyer, 1e17);
+        _mintEbtc(testBuyer, buyAmount);
         vm.prank(testMinter);
         bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+
+        vm.prank(testBuyer);
+        uint256 assetsOut = bsmTester.buyAsset(buyAmount, testBuyer, 0);
+
+        assertEq(assetsOut, assetTokenAmount);// Little increments don't affect rounding
+
         // TEST: Basic scenario, rounding returns zero
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
         bsmTester.previewBuyAsset(amount);
@@ -240,9 +249,17 @@ contract BuyAssetTests is BSMTestBase {
         bsmTester.setFeeToBuy(100);
 
         vm.prank(testBuyer);
-        bsmTester.buyAsset(1e10, testBuyer, 0);
-
-        //TEST: selling and buying back slight more
+        bsmTester.buyAsset(1e10, testBuyer, 0);//TODO find culprit of fee = 1 when amountOut is 1 even when fee its 1%
+        
+        // Fund bsm to bypass constrains
+        _mintAssetToken(testMinter, tokenAmount);
+        _mintEbtc(testBuyer, 1e17);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(tokenAmount, testMinter, 0);
 
     }
 }
+/**
+29313963461606053 assetIn
+29313963461606053 assetOut
+ */
