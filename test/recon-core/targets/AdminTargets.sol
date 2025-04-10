@@ -22,7 +22,9 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         asTechops
     {
         require(ALLOWS_REKT, "Allows rekt");
-        escrow.depositToExternalVault(assetsToDeposit, expectedShares);
+        if (!USE_BASE_ESCROW) {
+            ERC4626Escrow(address(escrow)).depositToExternalVault(assetsToDeposit, expectedShares);
+        }
     }
     /// === Escrow === ///
 
@@ -35,8 +37,10 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         uint256 balanceB4 = escrow.totalBalance();
 
         // asTechops
-        vm.prank(address(techOpsMultisig));
-        escrow.depositToExternalVault(assetsToDeposit, expectedShares);
+        if (!USE_BASE_ESCROW) {
+            vm.prank(address(techOpsMultisig));
+            ERC4626Escrow(address(escrow)).depositToExternalVault(assetsToDeposit, expectedShares);
+        }
 
         uint256 balanceAfter = escrow.totalBalance();
 
@@ -48,7 +52,9 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         updateGhosts
         asTechops
     {
-        escrow.redeemFromExternalVault(sharesToRedeem, expectedAssets);
+        if (!USE_BASE_ESCROW) {
+            ERC4626Escrow(address(escrow)).redeemFromExternalVault(sharesToRedeem, expectedAssets);
+        }
     }
 
     function escrow_onMigrateTarget(uint256 amount) public updateGhosts asTechops {
@@ -93,8 +99,8 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         }
 
         // Expected lower
-        uint256 shares = escrow.EXTERNAL_VAULT().convertToShares(toWithdraw);
-        uint256 expected = escrow.EXTERNAL_VAULT().previewRedeem(shares) + liquidBal;
+        uint256 shares = USE_BASE_ESCROW ? 0 : ERC4626Escrow(address(escrow)).EXTERNAL_VAULT().convertToShares(toWithdraw);
+        uint256 expected = (USE_BASE_ESCROW ? 0 : ERC4626Escrow(address(escrow)).EXTERNAL_VAULT().previewRedeem(shares)) + liquidBal;
 
         uint256 balB4 = (escrow.ASSET_TOKEN()).balanceOf(address(escrow.FEE_RECIPIENT()));
         escrow_claimProfit();
@@ -117,7 +123,7 @@ abstract contract AdminTargets is BaseTargetFunctions, Properties {
         // Profit should be 0
         // NOTE: Profit can be unable to withdraw the last share due to rounding errors
         // As such profit doesn't reset to 0, but down to 1 wei of a share
-        uint256 maxLoss = escrow.EXTERNAL_VAULT().previewRedeem(1);
+        uint256 maxLoss = USE_BASE_ESCROW ? 0 : ERC4626Escrow(address(escrow)).EXTERNAL_VAULT().previewRedeem(1);
         lte(escrow.feeProfit(), maxLoss, "Profit should be 0");
     }
 

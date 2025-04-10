@@ -16,11 +16,12 @@ import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
     uint8 constant internal NUM_DECIMALS = 8;
+    bool constant internal USE_BASE_ESCROW = true;
 
     MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
     ERC4626Mock internal externalVault;
-    ERC4626Escrow internal escrow;
+    BaseEscrow internal escrow;
     MockAssetOracle internal mockAssetOracle;
     MockActivePoolObserver internal mockActivePoolObserver;
     OraclePriceConstraint internal oraclePriceConstraint;
@@ -95,13 +96,22 @@ contract BSMBase {
             address(authority)
         );
 
-        escrow = new ERC4626Escrow(
-            address(externalVault),
-            address(mockAssetToken),
-            address(bsmTester),
-            address(authority),
-            address(defaultFeeRecipient)
-        );
+        if (USE_BASE_ESCROW) {
+            escrow = new BaseEscrow(
+                address(mockAssetToken),
+                address(bsmTester),
+                address(authority),
+                address(defaultFeeRecipient)
+            );
+        } else {
+            escrow = new ERC4626Escrow(
+                address(externalVault),
+                address(mockAssetToken),
+                address(bsmTester),
+                address(authority),
+                address(defaultFeeRecipient)
+            );
+        }
         
         bsmTester.initialize(address(escrow));
 
@@ -182,18 +192,20 @@ contract BSMBase {
             escrow.claimTokens.selector,
             true
         );
-        setRoleCapability(
-            15,
-            address(escrow),
-            escrow.depositToExternalVault.selector,
-            true
-        );
-        setRoleCapability(
-            15,
-            address(escrow),
-            escrow.redeemFromExternalVault.selector,
-            true
-        );
+        if (!USE_BASE_ESCROW) {
+            setRoleCapability(
+                15,
+                address(escrow),
+                ERC4626Escrow(address(escrow)).depositToExternalVault.selector,
+                true
+            );
+            setRoleCapability(
+                15,
+                address(escrow),
+                ERC4626Escrow(address(escrow)).redeemFromExternalVault.selector,
+                true
+            );
+        }
         setRoleCapability(
             15,
             address(oraclePriceConstraint),
