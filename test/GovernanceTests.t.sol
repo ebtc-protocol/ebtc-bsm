@@ -8,11 +8,43 @@ import "../src/DummyConstraint.sol";
 
 contract GovernanceTests is BSMTestBase {
 
-    function testClaimProfit() public {
+    function testClaimProfit(uint256 numTokens, uint256 fraction) public {
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
+        
+        _mintAssetToken(testMinter, assetTokenAmount * 2);
+        
+        // TEST: auth
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         escrow.claimProfit();
 
+        // TEST: event + accounting
+        // 1% fee
+        vm.prank(techOpsMultisig);
+        bsmTester.setFeeToSell(100);
+
+        uint256 fee = _feeToSell(assetTokenAmount);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        assertEq(escrow.feeProfit(), fee);
+        
+        vm.expectEmit(address(escrow));
+        emit IEscrow.ProfitClaimed(fee);
+        vm.prank(techOpsMultisig);
+        escrow.claimProfit();
+
+        assertEq(escrow.feeProfit(), 0);
+        
+        // TEST: profitWithdraw is not he same as feeProfit
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        fee = escrow.feeProfit();
+        // provoke deficit by removing some asset token
+        /*vm.prank(address(escrow));
+        mockAssetToken.burn(address(escrow), assetTokenAmount);*/
+        console.log("aaaaaaaaaaaaaa");
+        vm.expectEmit(address(escrow));
+        emit IEscrow.ProfitClaimed(fee);
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
     }
