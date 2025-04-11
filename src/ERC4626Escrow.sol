@@ -67,7 +67,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     function _ensureLiquidity(uint256 _amountRequired) private returns (uint256 _amountRedeemed) {
         /// @dev super._totalBalance() returns asset balance for this contract
         uint256 liquidBalance = super._totalBalance();
-
+        
         if (_amountRequired > liquidBalance) {
             uint256 deficit;
             unchecked {
@@ -88,7 +88,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
             }
             // amountRedeemed can be less than deficit because of rounding
             _amountRedeemed = liquidBalance + redeemed;
-
+            
             /// @audit Some vaults (most OOS) do not accrue their assets in `convertToShares`
             /// This can cause `redeem` to withdraw more than requested
             /// To prevent abuse, we cap at deficit
@@ -121,7 +121,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     /// @return The previewed withdrawable amount
     function _previewWithdraw(uint256 _assetAmount) internal override view returns (uint256) {
         uint256 liquidBalance = super._totalBalance();        
-
+       
         if (_assetAmount > liquidBalance) {
             uint256 deficit;
             unchecked {

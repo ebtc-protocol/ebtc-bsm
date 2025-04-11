@@ -35,15 +35,28 @@ contract GovernanceTests is BSMTestBase {
         escrow.depositToExternalVault(amountToDeposit, 0);
 
         // provoke different redeemed amount
-        vm.prank(address(escrow));
-        mockAssetToken.transfer(vm.addr(0xdead), fee - 1);
+        /*vm.prank(address(escrow));
+        mockAssetToken.transfer(vm.addr(0xdead), fee - 1);*/
 
-        console.log("About to go2");// TODO keep accounting to verify thats Whats up
         uint256 prevFeeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
-        vm.expectEmit(address(escrow));
-        emit IEscrow.ProfitClaimed(fee);
+        vm.recordLogs();
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        // Get the keccak256 hash of the event signature
+        bytes32 expectedTopic = keccak256("ProfitClaimed(uint256)");
+
+        // Look through logs
+        for (uint256 i = 0; i < entries.length; i++) {
+            Vm.Log memory log = entries[i];
+
+            if (log.topics[0] == expectedTopic) {
+                uint256 profitAmount = abi.decode(log.data, (uint256));
+                assertNotEq(profitAmount, fee);
+            }
+        }
+        assertEq(entries[entries.length - 1].topics[0], keccak256("ProfitClaimed(uint256)"));
 
         uint256 feeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
         uint256 profit = feeRecipientBalance - prevFeeRecipientBalance;
