@@ -210,6 +210,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     /// @notice Internal sellAsset function with an expected fee amount
+    /// @dev _ebtcAmountOut might be zero if feeToBuy > 0 and the _ebtcAmountIn its a small value
     function _sellAsset(
         uint256 _assetAmountIn, // asset precision
         address _recipient,
@@ -248,6 +249,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     /// @notice Internal buyAsset function with an expected fee amount
+    /// @dev _assetAmountOut might be zero if feeToBuy > 0 and the _ebtcAmountIn its a small value e.g. 1e10
     function _buyAsset(
         uint256 _ebtcAmountIn, // ebtc precision
         address _recipient,
