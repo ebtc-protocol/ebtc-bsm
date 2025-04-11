@@ -18,12 +18,39 @@ contract GovernanceTests is BSMTestBase {
         vm.prank(testMinter);
         escrow.claimProfit();
 
-        // TEST: event + accounting
+        // TEST: profitWithdraw is not he same as feeProfit
         // 1% fee
         vm.prank(techOpsMultisig);
-        bsmTester.setFeeToSell(100);
-
+        bsmTester.setFeeToSell(900);
         uint256 fee = _feeToSell(assetTokenAmount);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        
+        // provoke deficit by removing some asset token
+        fee = escrow.feeProfit();
+        assertGt(fee, 0);
+        uint256 amountToDeposit = assetTokenAmount - fee + 1;// Will result in redeeming from vault
+
+        vm.prank(techOpsMultisig);
+        escrow.depositToExternalVault(amountToDeposit, 0);
+
+        // provoke different redeemed amount
+        vm.prank(address(escrow));
+        mockAssetToken.transfer(vm.addr(0xdead), fee - 1);
+
+        console.log("About to go2");// TODO keep accounting to verify thats Whats up
+        uint256 prevFeeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
+        vm.expectEmit(address(escrow));
+        emit IEscrow.ProfitClaimed(fee);
+        vm.prank(techOpsMultisig);
+        escrow.claimProfit();
+
+        uint256 feeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
+        uint256 profit = feeRecipientBalance - prevFeeRecipientBalance;
+        assertNotEq(profit, fee);
+
+        // TEST: event + accounting
+        fee = _feeToSell(assetTokenAmount);
         vm.prank(testMinter);
         bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
         assertEq(escrow.feeProfit(), fee);
@@ -34,19 +61,6 @@ contract GovernanceTests is BSMTestBase {
         escrow.claimProfit();
 
         assertEq(escrow.feeProfit(), 0);
-        
-        // TEST: profitWithdraw is not he same as feeProfit
-        vm.prank(testMinter);
-        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
-        fee = escrow.feeProfit();
-        // provoke deficit by removing some asset token
-        /*vm.prank(address(escrow));
-        mockAssetToken.burn(address(escrow), assetTokenAmount);*/
-        console.log("aaaaaaaaaaaaaa");
-        vm.expectEmit(address(escrow));
-        emit IEscrow.ProfitClaimed(fee);
-        vm.prank(techOpsMultisig);
-        escrow.claimProfit();
     }
 
     function testSetFeeToBuy() public {
