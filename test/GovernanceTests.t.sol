@@ -34,9 +34,9 @@ contract GovernanceTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         escrow.depositToExternalVault(amountToDeposit, 0);
 
-        // provoke different redeemed amount
-        /*vm.prank(address(escrow));
-        mockAssetToken.transfer(vm.addr(0xdead), fee - 1);*/
+        // provoke different redeemed amount EXTERNAL_VAULT.balanceOf(address(this));
+        vm.prank(address(escrow));
+        externalVault.transfer(vm.addr(0xdead), fee - 1);
 
         uint256 prevFeeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
         vm.recordLogs();
