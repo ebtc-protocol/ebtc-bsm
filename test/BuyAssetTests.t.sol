@@ -242,7 +242,7 @@ contract BuyAssetTests is BSMTestBase {
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
         bsmTester.buyAsset(amount, testBuyer, 0);
 
-        // TEST: When using small amount fees are ignored because they are less than 1
+        // TEST: Even using small amounts fees are never below zero
         // 1% fee
         vm.prank(techOpsMultisig);
         bsmTester.setFeeToBuy(100);
@@ -253,6 +253,8 @@ contract BuyAssetTests is BSMTestBase {
         bsmTester.sellAsset(tokenAmount, testMinter, 0);
 
         vm.prank(testBuyer);
-        assetsOut = bsmTester.buyAsset(1e10, testBuyer, 0);//TODO figure how we want to round tests
+        assetsOut = bsmTester.buyAsset(1e10, testBuyer, 0);
+
+        assertEq(assetsOut, 0);
     }
 }
