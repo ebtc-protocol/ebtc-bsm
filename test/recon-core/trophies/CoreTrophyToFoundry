@@ -9,6 +9,7 @@ import {TargetFunctions} from "../TargetFunctions.sol";
 
 /// Collection of repros for broken properties
 /// Found with the fuzzer
+/// NOTE: Remove file extension to not flag properties that have been fixed
 
 // forge test --match-contract TrophyToFoundry -vv
 contract CoreTrophyToFoundry is Test, TargetFunctions, FoundryAsserts {

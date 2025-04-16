@@ -10,7 +10,7 @@ import {AggregatorV3Interface} from "./Dependencies/AggregatorV3Interface.sol";
 /// @dev Implements IConstraint to provide minting restrictions based on real-time asset price information provided by Chainlink oracles.
 contract OraclePriceConstraint is IConstraint, AuthNoOwner {
     /// @notice Basis points constant for price calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice Asset feed is denominated in BTC (i.e. tBTC/BTC)
     AggregatorV3Interface public immutable ASSET_FEED;
@@ -62,6 +62,8 @@ contract OraclePriceConstraint is IConstraint, AuthNoOwner {
         (, int256 answer, , uint256 updatedAt, ) = ASSET_FEED.latestRoundData();
 
         if (answer <= 0) revert BadOraclePrice(answer);
+        /// @dev Extra staleness check here in case an actual chainlink feed
+        /// is used here instead of AssetChainlinkAdapter
         if ((block.timestamp - updatedAt) > oracleFreshnessSeconds) {
             revert StaleOraclePrice(updatedAt);
         }

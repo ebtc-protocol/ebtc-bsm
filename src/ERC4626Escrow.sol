@@ -13,7 +13,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     using SafeERC20 for IERC20;
 
     /// @notice Basis points representation for calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice The ERC4626 compliant external vault used
     IERC4626 public immutable EXTERNAL_VAULT;
@@ -130,13 +130,24 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
             /// @dev using convertToShares + previewRedeem instead of previewWithdraw to round down
             uint256 shares = _clampShares(EXTERNAL_VAULT.convertToShares(deficit));
-            return liquidBalance + (shares > 0 ? EXTERNAL_VAULT.previewRedeem(shares) : 0);
+
+            /// Cap for edge case when `previewRedeem` returns more assets than `convertToShares`
+            uint256 redeemed;
+            if(shares > 0) {
+                redeemed = EXTERNAL_VAULT.previewRedeem(shares);
+                if(redeemed > deficit) {
+                    redeemed = deficit; // Cap for edge case
+                }
+            }
+            return liquidBalance + redeemed;
         } else {
             return _assetAmount;
         }
     }
 
     /// @notice Prepares the contract for migration by redeeming all shares from the external vault
+    /// @notice We expect to redeem here only if the escrow balance is low. For large escrow balances,
+    /// we will call `redeemFromExternalVault` before a migration to have proper slippage checks.
     function _beforeMigration() internal override {
         uint256 shares = EXTERNAL_VAULT.balanceOf(address(this));
         if (shares > 0) {

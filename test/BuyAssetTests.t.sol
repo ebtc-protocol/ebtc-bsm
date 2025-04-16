@@ -3,6 +3,7 @@ pragma solidity ^0.8.29;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./BSMTestBase.sol";
+import "../src/ERC4626Escrow.sol";
 import {IEbtcBSM} from "../src/Dependencies/IEbtcBSM.sol";
 
 contract BuyAssetTests is BSMTestBase {
@@ -185,16 +186,19 @@ contract BuyAssetTests is BSMTestBase {
 
         assertEq(amtOut, realOut);
         assertEq(afterShares, beforeShares);// No redeem happened
-        
-        // With no liquidity
+
         withdrawAmountAsset = 2 * assetTokenAmount;
         withdrawAmountEbtc = 2 * ebtcAmount;
-        uint256 shares = externalVault.previewDeposit(withdrawAmountAsset);
-        vm.prank(techOpsMultisig);
-        escrow.depositToExternalVault(withdrawAmountAsset, shares);
-        liquidBalance = mockAssetToken.balanceOf(address(escrow));
-        // Ensure liquidity deficit
-        assertGt(withdrawAmountAsset, liquidBalance);
+
+        // With no liquidity
+        if (!USE_BASE_ESCROW) {
+            uint256 shares = externalVault.previewDeposit(withdrawAmountAsset);
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(withdrawAmountAsset, shares);
+            liquidBalance = mockAssetToken.balanceOf(address(escrow));
+            // Ensure liquidity deficit
+            assertGt(withdrawAmountAsset, liquidBalance);
+        } 
         
         // Preview withdraw should take into account redeem amount
         beforeShares = externalVault.balanceOf(address(escrow));
@@ -206,7 +210,10 @@ contract BuyAssetTests is BSMTestBase {
         afterShares = externalVault.balanceOf(address(escrow));
 
         assertEq(amtOut, realOut);
-        assertLt(afterShares, beforeShares);// Redeem happened
+
+        if (!USE_BASE_ESCROW) {
+            assertLt(afterShares, beforeShares);// Redeem happened
+        }
     }
 
     function testBuyAssetReverts() public {

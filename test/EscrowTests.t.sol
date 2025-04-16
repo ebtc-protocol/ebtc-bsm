@@ -3,6 +3,7 @@ pragma solidity ^0.8.29;
 
 import "./BSMTestBase.sol";
 import "./mocks/MockAssetToken.sol";
+import "../src/ERC4626Escrow.sol";
 
 contract EscrowTests is BSMTestBase {
     MockAssetToken internal mockToken;
@@ -23,10 +24,12 @@ contract EscrowTests is BSMTestBase {
         vm.prank(techOpsMultisig);
         escrow.claimTokens(address(mockAssetToken), 1);// asset token
 
-        address vaultAddress = address(escrow.EXTERNAL_VAULT());
-        vm.expectRevert();
-        vm.prank(techOpsMultisig);
-        escrow.claimTokens(vaultAddress, 1);// vault token
+        if (!USE_BASE_ESCROW) {
+            address vaultAddress = address(ERC4626Escrow(address(escrow)).EXTERNAL_VAULT());
+            vm.expectRevert();
+            vm.prank(techOpsMultisig);
+            escrow.claimTokens(vaultAddress, 1);// vault token
+        }
 
         // if no authorized user
         vm.expectRevert("Auth: UNAUTHORIZED");

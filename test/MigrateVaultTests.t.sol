@@ -130,21 +130,24 @@ contract MigrateAssetVaultTest is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.sellAsset(assetTokenAmount, address(this), 0);
 
-        uint256 shares = externalVault.previewDeposit(assetAmount);
-        vm.prank(techOpsMultisig);
-        escrow.depositToExternalVault(assetAmount, shares);
+        if (!USE_BASE_ESCROW)  {
+            uint256 shares = externalVault.previewDeposit(assetAmount);
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(assetAmount, shares);
 
-        _mintEbtc(testBuyer, ebtcAmount / 2);
-        vm.prank(testBuyer);
-        bsmTester.buyAsset(ebtcAmount / 2, testBuyer, 0);
+            _mintEbtc(testBuyer, ebtcAmount / 2);
+            vm.prank(testBuyer);
+            bsmTester.buyAsset(ebtcAmount / 2, testBuyer, 0);
 
-        assertGt(escrow.totalAssetsDeposited(), 0);
-        assertGt(externalVault.balanceOf(address(escrow)), 0);
+            assertGt(escrow.totalAssetsDeposited(), 0);
+            assertGt(externalVault.balanceOf(address(escrow)), 0);
 
-        uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up
-        
-        vm.prank(techOpsMultisig);
-        escrow.redeemFromExternalVault(redeemAmount , assetAmount / 2);
+            uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up
+            
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).redeemFromExternalVault(redeemAmount , assetAmount / 2);
+        }
+
         // Migrate escrow
         uint256 totalAssetsDeposited = escrow.totalAssetsDeposited();
         uint256 escrowBalance = externalVault.balanceOf(address(escrow));
@@ -171,20 +174,23 @@ contract MigrateAssetVaultTest is BSMTestBase {
 
         assertGt(profit, 0);
 
-        uint256 shares = externalVault.previewDeposit(assetTokenAmount);
-        vm.prank(techOpsMultisig);
-        escrow.depositToExternalVault(assetTokenAmount, shares);
+        if (!USE_BASE_ESCROW)  {
+            uint256 shares = externalVault.previewDeposit(assetTokenAmount);
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(assetTokenAmount, shares);
 
-        _mintEbtc(testBuyer, ebtcAmount);
-        vm.prank(testBuyer);
-        bsmTester.buyAsset(ebtcAmount / 2, testBuyer, 0);
+            _mintEbtc(testBuyer, ebtcAmount);
+            vm.prank(testBuyer);
+            bsmTester.buyAsset(ebtcAmount / 2, testBuyer, 0);
 
-        assertGt(escrow.totalAssetsDeposited(), 0);
-        assertGt(externalVault.balanceOf(address(escrow)), 0);
-        
-        uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up
-        vm.prank(techOpsMultisig);
-        escrow.redeemFromExternalVault(redeemAmount , assetTokenAmount / 2);
+            assertGt(escrow.totalAssetsDeposited(), 0);
+            assertGt(externalVault.balanceOf(address(escrow)), 0);
+            
+            uint256 redeemAmount = (shares + 2 - 1)/ 2; // round up
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).redeemFromExternalVault(redeemAmount , assetTokenAmount / 2);
+        }
+
         // Migrate escrow
         uint256 totalAssetsDeposited = escrow.totalAssetsDeposited();
         uint256 escrowBalance = externalVault.balanceOf(address(escrow));
@@ -207,17 +213,19 @@ contract MigrateAssetVaultTest is BSMTestBase {
         vm.prank(techOpsMultisig);
         bsmTester.sellAsset(assetTokenAmount, address(this), 0);
 
-        uint256 shares = externalVault.previewDeposit(assetAmount);
-        vm.prank(techOpsMultisig);
-        escrow.depositToExternalVault(assetAmount, shares);
+        if (!USE_BASE_ESCROW)  {
+            uint256 shares = externalVault.previewDeposit(assetAmount);
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(assetAmount, shares);
 
-        // 50% external vault loss
-        vm.prank(address(externalVault));
-        mockAssetToken.transfer(vm.addr(0xdead), assetAmount / 2);
+            // 50% external vault loss
+            vm.prank(address(externalVault));
+            mockAssetToken.transfer(vm.addr(0xdead), assetAmount / 2);
+        }
 
         vm.prank(techOpsMultisig);
         bsmTester.updateEscrow(address(newEscrow));
-        uint256 depositAmount = (assetAmount + 2 - 1)/ 2; // round up
+        uint256 depositAmount = USE_BASE_ESCROW ? assetAmount : (assetAmount + 2 - 1)/ 2; // round up
         _checkAssetTokenBalance(address(newEscrow), depositAmount);
         assertEq(newEscrow.totalAssetsDeposited(), assetAmount);
     }
