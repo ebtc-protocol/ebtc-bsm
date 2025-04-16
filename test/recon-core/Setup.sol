@@ -40,6 +40,11 @@ abstract contract Setup is BaseSetup, BSMBase, ActorManager, AssetManager {
         vm.prank(second_actor);
         mockEbtcToken.approve(address(bsmTester), type(uint256).max);
 
+        vm.prank(defaultGovernance);
+        authority.setUserRole(address(this), 16, true);
+        vm.prank(defaultGovernance);
+        authority.setUserRole(address(second_actor), 16, true);
+
         mockAssetToken.mint(address(this), type(uint88).max);
         mockEbtcToken.mint(address(this), type(uint88).max);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
