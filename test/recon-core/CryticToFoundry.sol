@@ -36,4 +36,11 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
         property_total_minted_eq_total_asset_deposits();
 
     }
+
+    // forge test --match-test test_equivalence_bsm_previewSellAssetNoFee_0 -vvv 
+function test_equivalence_bsm_previewSellAssetNoFee_0() public {
+
+    equivalence_bsm_previewSellAssetNoFee(1);
+
+ }
 }
