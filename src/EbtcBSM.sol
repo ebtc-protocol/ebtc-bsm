@@ -301,7 +301,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewSellAsset(
         uint256 _assetAmountIn
-    ) external view returns (uint256 _ebtcAmountOut) {
+    ) external view whenNotPaused returns (uint256 _ebtcAmountOut) {
         return _previewSellAsset(_assetAmountIn, _feeToSell(_assetAmountIn));
     }
 
@@ -312,7 +312,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewBuyAsset(
         uint256 _ebtcAmountIn
-    ) external view returns (uint256 _assetAmountOut) {
+    ) external view whenNotPaused returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         return _previewBuyAsset(_feeToBuy(ebtcAmountInAssetPrecision), ebtcAmountInAssetPrecision);
     }
@@ -325,7 +325,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewSellAssetNoFee(
         uint256 _assetAmountIn
-    ) external view returns (uint256 _ebtcAmountOut) {
+    ) external view whenNotPaused returns (uint256 _ebtcAmountOut) {
         return _previewSellAsset(_assetAmountIn, 0);
     }
 
@@ -336,7 +336,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewBuyAssetNoFee(
         uint256 _ebtcAmountIn
-    ) external view returns (uint256 _assetAmountOut) {
+    ) external view whenNotPaused returns (uint256 _assetAmountOut) {
         return _previewBuyAsset(0, _toAssetPrecision(_ebtcAmountIn));
     }
 
