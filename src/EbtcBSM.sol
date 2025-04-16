@@ -115,7 +115,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     * @param _amount Amount of asset tokens to buy
     * @return Fee amount
     */
-    function _feeToBuy(uint256 _amount) public view returns (uint256) {
+    function _feeToBuy(uint256 _amount) private view returns (uint256) {
         return Math.mulDiv(_amount, feeToBuyBPS, BPS, Math.Rounding.Ceil);
     }
 
