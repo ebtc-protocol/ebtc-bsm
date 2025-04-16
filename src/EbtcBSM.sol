@@ -140,6 +140,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _assetAmountIn,
         uint256 _feeAmount
     ) private view returns (uint256 _ebtcAmountOut) {
+        if (_assetAmountIn == 0) revert ZeroAmount();
+        
         /// @dev _assetAmountIn and _feeAmount are both in asset precision
         _ebtcAmountOut = _toEbtcPrecision(_assetAmountIn - _feeAmount);
         _checkMintingConstraints(_ebtcAmountOut);
