@@ -5,6 +5,7 @@ import "./BSMTestBase.sol";
 import "../src/RateLimitingConstraint.sol";
 import "../src/OraclePriceConstraint.sol";
 import "../src/DummyConstraint.sol";
+import "../src/ERC4626Escrow.sol";
 
 contract GovernanceTests is BSMTestBase {
 
@@ -31,12 +32,14 @@ contract GovernanceTests is BSMTestBase {
         assertGt(fee, 0);
         uint256 amountToDeposit = assetTokenAmount - fee + 1;// Will result in redeeming from vault
 
-        vm.prank(techOpsMultisig);
-        escrow.depositToExternalVault(amountToDeposit, 0);
+        if (!USE_BASE_ESCROW) {
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(amountToDeposit, 0);
 
-        // provoke different redeemed amount
-        vm.prank(address(escrow));
-        externalVault.transfer(vm.addr(0xdead), fee - 1);
+            // provoke different redeemed amount
+            vm.prank(address(escrow));
+            externalVault.transfer(vm.addr(0xdead), fee - 1);
+        }
 
         uint256 prevFeeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
         vm.recordLogs();
@@ -53,7 +56,11 @@ contract GovernanceTests is BSMTestBase {
 
             if (log.topics[0] == expectedTopic) {
                 profitAmount = abi.decode(log.data, (uint256));
-                assertNotEq(profitAmount, fee);
+                if (!USE_BASE_ESCROW) {
+                    assertNotEq(profitAmount, fee);
+                } else {
+                    assertEq(profitAmount, fee);
+                }
             }
         }
 
