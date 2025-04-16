@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import "forge-std/Test.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {MockAssetOracle} from "./mocks/MockAssetOracle.sol";
 import {MockActivePoolObserver} from "./mocks/MockActivePoolObserver.sol";
@@ -10,11 +9,15 @@ import "../src/Dependencies/Governor.sol";
 import "../src/EbtcBSM.sol";
 import "../src/OraclePriceConstraint.sol";
 import "../src/RateLimitingConstraint.sol";
+import "../src/DummyConstraint.sol";
 import "../src/ERC4626Escrow.sol";
+import "./mocks/MockAssetToken.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 contract BSMBase {
-    ERC20Mock internal mockAssetToken;
+    uint8 constant internal NUM_DECIMALS = 8;
+
+    MockAssetToken internal mockAssetToken;
     ERC20Mock internal mockEbtcToken;
     ERC4626Mock internal externalVault;
     ERC4626Escrow internal escrow;
@@ -41,11 +44,31 @@ contract BSMBase {
         _;
     }
 
-    function baseSetup() internal virtual {
+    function _getAssetTokenAmount(uint256 units) internal returns (uint256) {
+        return units * _assetTokenPrecision();
+    }
+
+    function _getEbtcAmount(uint256 units) internal returns (uint256) {
+        return units * (10 ** mockEbtcToken.decimals());
+    }
+
+    function _assetTokenPrecision() internal view returns (uint256) {
+        return (10 ** mockAssetToken.decimals());
+    }
+
+    function _mintAssetToken(address to, uint256 amount) internal {
+        mockAssetToken.mint(to, amount);
+    }
+
+    function _mintEbtc(address to, uint256 amount) internal {
+        mockEbtcToken.mint(to, amount);
+    }
+
+    function baseSetup(uint8 assetDecimals) internal virtual {
         defaultGovernance = vm.addr(0x123456);
         defaultFeeRecipient = vm.addr(0x234567);
         authority = new Governor(defaultGovernance);
-        mockAssetToken = new ERC20Mock();
+        mockAssetToken = new MockAssetToken(assetDecimals);
         mockEbtcToken = new ERC20Mock();
         mockActivePoolObserver = new MockActivePoolObserver(mockEbtcToken);
         externalVault = new ERC4626Mock(address(mockAssetToken));
@@ -67,6 +90,7 @@ contract BSMBase {
             address(mockAssetToken),
             address(oraclePriceConstraint),
             address(rateLimitingConstraint),
+            address(new DummyConstraint()),
             address(mockEbtcToken),
             address(authority)
         );
@@ -82,24 +106,16 @@ contract BSMBase {
         bsmTester.initialize(address(escrow));
 
         // create initial ebtc supply
-        mockEbtcToken.mint(defaultGovernance, 50e18);
+        _mintEbtc(defaultGovernance, 100000000000e18);
         mockAssetOracle.setPrice(1e18);
         mockAssetOracle.setUpdateTime(block.timestamp);
 
         vm.prank(testMinter);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
-        mockAssetToken.mint(testMinter, 10e18);
-
         vm.prank(testAuthorizedUser);
         mockAssetToken.approve(address(bsmTester), type(uint256).max);
         vm.prank(testAuthorizedUser);
         mockEbtcToken.approve(address(bsmTester), type(uint256).max);
-        
-        mockAssetToken.mint(testAuthorizedUser, 10e18);
-        mockEbtcToken.mint(testAuthorizedUser, 10e18);
-
-        vm.prank(testBuyer);
-        mockEbtcToken.mint(testBuyer, 10e18);
 
         // give eBTC minter and burner roles to BSM tester
         setUserRole(address(bsmTester), 1, true);
@@ -150,8 +166,20 @@ contract BSMBase {
         );
         setRoleCapability(
             15,
+            address(bsmTester),
+            bsmTester.setBuyAssetConstraint.selector,
+            true
+        );
+        setRoleCapability(
+            15,
             address(escrow),
             escrow.claimProfit.selector,
+            true
+        );
+        setRoleCapability(
+            15,
+            address(escrow),
+            escrow.claimTokens.selector,
             true
         );
         setRoleCapability(

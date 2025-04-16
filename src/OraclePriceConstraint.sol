@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import {AuthNoOwner} from "./Dependencies/AuthNoOwner.sol";
-import {IMintingConstraint} from "./Dependencies/IMintingConstraint.sol";
+import {IConstraint} from "./Dependencies/IConstraint.sol";
 import {AggregatorV3Interface} from "./Dependencies/AggregatorV3Interface.sol";
 
 /// @title Oracle Price Constraint for Minting
 /// @notice This contract uses price feed from an oracle to set constraints on minting based on the asset's current market price.
-/// @dev Implements IMintingConstraint to provide minting restrictions based on real-time asset price information provided by Chainlink oracles.
-contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
+/// @dev Implements IConstraint to provide minting restrictions based on real-time asset price information provided by Chainlink oracles.
+contract OraclePriceConstraint is IConstraint, AuthNoOwner {
     /// @notice Basis points constant for price calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice Asset feed is denominated in BTC (i.e. tBTC/BTC)
     AggregatorV3Interface public immutable ASSET_FEED;
@@ -42,6 +42,9 @@ contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
     /// @notice Error thrown when the asset price is below the minimum required for minting
     error BelowMinPrice(uint256 assetPrice, uint256 minPrice);
 
+    /// @notice Error thrown when trying to set an invalid min price
+    error InvalidMinPrice();
+
     /// @notice Contract constructor
     /// @param _assetFeed Address of the oracle price feed
     /// @param _governance Address of the governance authority
@@ -59,6 +62,8 @@ contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
         (, int256 answer, , uint256 updatedAt, ) = ASSET_FEED.latestRoundData();
 
         if (answer <= 0) revert BadOraclePrice(answer);
+        /// @dev Extra staleness check here in case an actual chainlink feed
+        /// is used here instead of AssetChainlinkAdapter
         if ((block.timestamp - updatedAt) > oracleFreshnessSeconds) {
             revert StaleOraclePrice(updatedAt);
         }
@@ -68,12 +73,12 @@ contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
 
     /// @notice Determines if minting is allowed based on the current asset price
     /// @param _amount The amount of tokens requested to mint (unused in this contract)
-    /// @param _minter The address requesting to mint (unused in this contract)
+    /// @param _bsm The address requesting to mint (unused in this contract)
     /// @return bool True if minting is allowed, false otherwise
     /// @return bytes Encoded error data if minting is not allowed
-    function canMint(
+    function canProcess(
         uint256 _amount,
-        address _minter
+        address _bsm
     ) external view returns (bool, bytes memory) {
         uint256 assetPrice = _getAssetPrice();
         /// @dev peg price is 1e18
@@ -97,7 +102,7 @@ contract OraclePriceConstraint is IMintingConstraint, AuthNoOwner {
     /// @dev Can only be called by authorized users
     /// @param _minPriceBPS The new minimum price, in basis points
     function setMinPrice(uint256 _minPriceBPS) external requiresAuth {
-        require(_minPriceBPS <= BPS);
+        require(_minPriceBPS <= BPS, InvalidMinPrice());
         emit MinPriceUpdated(minPriceBPS, _minPriceBPS);
         minPriceBPS = _minPriceBPS;
     }

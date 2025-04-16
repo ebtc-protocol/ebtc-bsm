@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import {BaseEscrow} from "./BaseEscrow.sol";
 import {IERC4626Escrow} from "./Dependencies/IERC4626Escrow.sol";
@@ -13,7 +13,7 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
     using SafeERC20 for IERC20;
 
     /// @notice Basis points representation for calculations
-    uint256 public constant BPS = 10000;
+    uint256 public constant BPS = 10_000;
 
     /// @notice The ERC4626 compliant external vault used
     IERC4626 public immutable EXTERNAL_VAULT;
@@ -75,6 +75,8 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
             }
             // using convertToShares here because it rounds down
             // this prevents the vault from taking on losses
+            /// @notice We assume convertToShares always returns less shares than previewWithdraw
+            /// @notice This may not be the case for Euler earn
             uint256 shares = _clampShares(EXTERNAL_VAULT.convertToShares(deficit));
             uint256 redeemed;
             /// @dev avoid redeeming 0 shares
@@ -86,6 +88,13 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
             }
             // amountRedeemed can be less than deficit because of rounding
             _amountRedeemed = liquidBalance + redeemed;
+
+            /// @audit Some vaults (most OOS) do not accrue their assets in `convertToShares`
+            /// This can cause `redeem` to withdraw more than requested
+            /// To prevent abuse, we cap at deficit
+            if(redeemed > deficit) {
+                _amountRedeemed = liquidBalance + deficit; // Cap for edge case
+            }
         } else {
             // We have liquid amount so we return it
             _amountRedeemed = _amountRequired;
@@ -102,9 +111,9 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
     /// @notice Overrides _withdrawProfit from BaseEscrow to manage liquidity from the external vault
     /// @param _profitAmount The amount of profit to withdraw
-    function _withdrawProfit(uint256 _profitAmount) internal override {
+    function _withdrawProfit(uint256 _profitAmount) internal override returns (uint256) {
         uint256 redeemedAmount = _ensureLiquidity(_profitAmount);
-        super._withdrawProfit(redeemedAmount);
+        return super._withdrawProfit(redeemedAmount);
     }
 
     /// @notice Preview the amount of assets that would be withdrawn for a given amount of shares
@@ -121,15 +130,34 @@ contract ERC4626Escrow is BaseEscrow, IERC4626Escrow {
 
             /// @dev using convertToShares + previewRedeem instead of previewWithdraw to round down
             uint256 shares = _clampShares(EXTERNAL_VAULT.convertToShares(deficit));
-            return liquidBalance + (shares > 0 ? EXTERNAL_VAULT.previewRedeem(shares) : 0);
+
+            /// Cap for edge case when `previewRedeem` returns more assets than `convertToShares`
+            uint256 redeemed;
+            if(shares > 0) {
+                redeemed = EXTERNAL_VAULT.previewRedeem(shares);
+                if(redeemed > deficit) {
+                    redeemed = deficit; // Cap for edge case
+                }
+            }
+            return liquidBalance + redeemed;
         } else {
             return _assetAmount;
         }
     }
 
     /// @notice Prepares the contract for migration by redeeming all shares from the external vault
+    /// @notice We expect to redeem here only if the escrow balance is low. For large escrow balances,
+    /// we will call `redeemFromExternalVault` before a migration to have proper slippage checks.
     function _beforeMigration() internal override {
-        EXTERNAL_VAULT.redeem(EXTERNAL_VAULT.balanceOf(address(this)), address(this), address(this));
+        uint256 shares = EXTERNAL_VAULT.balanceOf(address(this));
+        if (shares > 0) {
+            EXTERNAL_VAULT.redeem(shares, address(this), address(this));
+        }
+    }
+
+    function _claimTokens(address token, uint256 amount) internal override {
+        require(token != address(EXTERNAL_VAULT), InvalidToken());
+        super._claimTokens(token, amount);
     }
 
     /// @notice Deposits assets into the external vault

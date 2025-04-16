@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.25;
+pragma solidity 0.8.29;
 
 interface IEscrow {
+    event ProfitClaimed(uint256 profitAmount);
+
     function totalAssetsDeposited() external view returns (uint256);
     function totalBalance() external view returns (uint256);
     function onDeposit(uint256 assetAmount) external;

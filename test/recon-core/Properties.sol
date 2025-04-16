@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 pragma solidity ^0.8.0;
 
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Asserts} from "@chimera/Asserts.sol";
 import {OpType, BeforeAfter} from "./BeforeAfter.sol";
 
@@ -20,6 +21,14 @@ abstract contract Properties is BeforeAfter, Asserts {
 
     function property_accounting_of_profit_is_sound() public {
         gte(escrow.totalBalance(), escrow.feeProfit(), "Total Balance is always greater than profit");
+    }
+
+    function property_total_minted_eq_total_asset_deposits() public {
+        eq(
+            bsmTester.totalMinted(), 
+            escrow.totalAssetsDeposited() * 1e18 / (10 ** ERC20(address(bsmTester.ASSET_TOKEN())).decimals()), 
+            "Total minted equals to total assets deposits regardless of asset token precision"
+        );
     }
 
     function property_fees_profit_increases() public {

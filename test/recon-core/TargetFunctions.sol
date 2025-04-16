@@ -14,16 +14,37 @@ import {PreviewTests} from "./targets/PreviewTests.sol";
 import {OpType} from "./BeforeAfter.sol";
 
 abstract contract TargetFunctions is AdminTargets, InlinedTests, ManagersTargets, PreviewTests {
+    /// INTERNAL ///
+    // NOTE: Could use a Lib or make them public, but not a huge deal
+    function _toAssetPrecision(uint256 _amount) private view returns (uint256)  {
+        return _amount * bsmTester.ASSET_TOKEN_PRECISION() / 1e18;
+    }
+
+    function _toEbtcPrecision(uint256 _amount) private view returns (uint256) {
+        return _amount * 1e18 / bsmTester.ASSET_TOKEN_PRECISION();
+    }
+
     function bsmTester_buyAsset(uint256 _ebtcAmountIn)
         public
         updateGhostsWithType(OpType.BUY_ASSET_WITH_EBTC)
         asActor
     {
-        bsmTester.buyAsset(_ebtcAmountIn, _getActor(), 0);
+        uint256 assetOut = bsmTester.buyAsset(_ebtcAmountIn, _getActor(), 0);
+
+        // Inlined test for Rounding
+        // _ebtcAmountIn > _toEbtcPrecision(assetOut) if there's any fee
+        if(bsmTester.feeToBuyBPS() > 0) {
+            lt(_toEbtcPrecision(assetOut), _ebtcAmountIn,  "Asset Out is less than eBTC In when you have fees");
+        }
     }
 
     function bsmTester_sellAsset(uint256 _assetAmountIn) public updateGhosts asActor {
-        bsmTester.sellAsset(_assetAmountIn, _getActor(), 0);
+        uint256 eBTCOut = bsmTester.sellAsset(_assetAmountIn, _getActor(), 0);
+
+        // Inlined test for rounding
+        if(bsmTester.feeToSellBPS() > 0) {
+            lt(_toAssetPrecision(eBTCOut), _assetAmountIn,  "eBTC Is less than asset amt in due to fees");
+        }
     }
 
     // Donations directly to the underlying vault

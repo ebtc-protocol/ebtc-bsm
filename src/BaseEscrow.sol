@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import { AuthNoOwner } from "./Dependencies/AuthNoOwner.sol";
 import { IEscrow } from "./Dependencies/IEscrow.sol";
@@ -18,6 +18,8 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     uint256 public totalAssetsDeposited;
 
     error CallerNotBSM();
+    error InvalidToken();
+    error LossCheck();
 
     /// @notice Modifier to restrict function calls to the BSM
     modifier onlyBSM() {
@@ -72,8 +74,9 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
 
     /// @notice withdraw profit to FEE_RECIPIENT
     /// @param _profitAmount The amount of profit to withdraw
-    function _withdrawProfit(uint256 _profitAmount) internal virtual {
+    function _withdrawProfit(uint256 _profitAmount) internal virtual returns (uint256){
         ASSET_TOKEN.safeTransfer(FEE_RECIPIENT, _profitAmount);
+        return _profitAmount;
     }
 
     /// @notice Prepares the escrow for migration
@@ -85,9 +88,10 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     function _claimProfit() internal {
         uint256 profit = feeProfit();
         if (profit > 0) {
-            _withdrawProfit(profit);
+            uint256 profitWithdrawn = _withdrawProfit(profit);
             // INVARIANT: total balance must be >= deposit amount
-            require(_totalBalance() >= totalAssetsDeposited);
+            require(_totalBalance() >= totalAssetsDeposited, LossCheck());
+            emit ProfitClaimed(profitWithdrawn);
         }        
     }
 
@@ -156,5 +160,17 @@ contract BaseEscrow is AuthNoOwner, IEscrow {
     /// @dev can only be called by authorized users
     function claimProfit() external requiresAuth {
         _claimProfit();
+    }
+
+    function _claimTokens(address token, uint256 amount) internal virtual {
+        require(token != address(ASSET_TOKEN), InvalidToken());
+        if (amount > 0) {
+            IERC20(token).safeTransfer(FEE_RECIPIENT, amount);
+        }
+    }
+
+    /// @notice Claim reward tokens and/or other tokens sent to this contract
+    function claimTokens(address token, uint256 amount) external requiresAuth {
+        _claimTokens(token, amount);
     }
 }

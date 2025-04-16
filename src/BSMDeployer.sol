@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.29;
 
 import "./EbtcBSM.sol";
 import "./ERC4626Escrow.sol";
@@ -20,6 +20,7 @@ contract BSMDeployer is Ownable {
         address _assetToken,
         address _oraclePriceConstraint,
         address _rateLimitingConstraint,
+        address _buyAssetConstraint,
         address _ebtcToken,
         address _feeRecipient,
         address _governance,
@@ -29,6 +30,7 @@ contract BSMDeployer is Ownable {
             address(_assetToken),
             address(_oraclePriceConstraint),
             address(_rateLimitingConstraint),
+            address(_buyAssetConstraint),
             address(_ebtcToken),
             address(_governance)
         );
