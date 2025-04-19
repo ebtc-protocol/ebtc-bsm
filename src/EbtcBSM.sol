@@ -140,6 +140,8 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _assetAmountIn,
         uint256 _feeAmount
     ) private view returns (uint256 _ebtcAmountOut) {
+        if (_assetAmountIn == 0) revert ZeroAmount();
+        
         /// @dev _assetAmountIn and _feeAmount are both in asset precision
         _ebtcAmountOut = _toEbtcPrecision(_assetAmountIn - _feeAmount);
         _checkMintingConstraints(_ebtcAmountOut);
@@ -149,6 +151,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
         uint256 _feeAmount,
         uint256 _ebtcAmountInAssetPrecision
     ) private view returns (uint256 _assetAmountOut) {
+        if (_ebtcAmountInAssetPrecision == 0) revert ZeroAmount();
         _checkBuyAssetConstraints(_ebtcAmountInAssetPrecision);
         /// @dev feeAmount is already in asset precision
         _assetAmountOut = escrow.previewWithdraw(_ebtcAmountInAssetPrecision) - _feeAmount;
@@ -208,6 +211,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     /// @notice Internal sellAsset function with an expected fee amount
+    /// @dev _ebtcAmountOut might be zero if feeToBuy > 0 and the _ebtcAmountIn its a small value
     function _sellAsset(
         uint256 _assetAmountIn, // asset precision
         address _recipient,
@@ -219,7 +223,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
 
         uint256 assetAmountInNoFee = _assetAmountIn - _feeAmount;
 
-        // Convert _assetAmountIn to ebtc precision (1e18)
+        // Convert _assetAmountIn to ebtc precision (1e18) // Because to convert to ebtc precision we always multiply by 1e18 this is never going to be zero
         _ebtcAmountOut = _toEbtcPrecision(assetAmountInNoFee);
 
         // slippage check
@@ -246,6 +250,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
     }
 
     /// @notice Internal buyAsset function with an expected fee amount
+    /// @dev _assetAmountOut might be zero if feeToBuy > 0 and the _ebtcAmountIn its a small value e.g. _ebtcAmountIn = 1e10 && fee = 1%
     function _buyAsset(
         address _recipient,
         uint256 _feeAmount,    // asset precision
@@ -298,7 +303,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewSellAsset(
         uint256 _assetAmountIn
-    ) external view returns (uint256 _ebtcAmountOut) {
+    ) external view whenNotPaused returns (uint256 _ebtcAmountOut) {
         return _previewSellAsset(_assetAmountIn, _feeToSell(_assetAmountIn));
     }
 
@@ -309,7 +314,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewBuyAsset(
         uint256 _ebtcAmountIn
-    ) external view returns (uint256 _assetAmountOut) {
+    ) external view whenNotPaused returns (uint256 _assetAmountOut) {
         uint256 ebtcAmountInAssetPrecision = _toAssetPrecision(_ebtcAmountIn);
         return _previewBuyAsset(_feeToBuy(ebtcAmountInAssetPrecision), ebtcAmountInAssetPrecision);
     }
@@ -322,7 +327,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewSellAssetNoFee(
         uint256 _assetAmountIn
-    ) external view returns (uint256 _ebtcAmountOut) {
+    ) external view whenNotPaused returns (uint256 _ebtcAmountOut) {
         return _previewSellAsset(_assetAmountIn, 0);
     }
 
@@ -333,7 +338,7 @@ contract EbtcBSM is IEbtcBSM, Pausable, Initializable, AuthNoOwner {
      */
     function previewBuyAssetNoFee(
         uint256 _ebtcAmountIn
-    ) external view returns (uint256 _assetAmountOut) {
+    ) external view whenNotPaused returns (uint256 _assetAmountOut) {
         return _previewBuyAsset(0, _toAssetPrecision(_ebtcAmountIn));
     }
 

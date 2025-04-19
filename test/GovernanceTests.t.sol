@@ -5,16 +5,81 @@ import "./BSMTestBase.sol";
 import "../src/RateLimitingConstraint.sol";
 import "../src/OraclePriceConstraint.sol";
 import "../src/DummyConstraint.sol";
+import "../src/ERC4626Escrow.sol";
 
 contract GovernanceTests is BSMTestBase {
 
-    function testClaimProfit() public {
+    function testClaimProfit(uint256 numTokens, uint256 fraction) public {
+        (uint256 ebtcAmount, uint256 assetTokenAmount) = _getTestData(numTokens, fraction);
+        
+        _mintAssetToken(testMinter, assetTokenAmount * 2);
+        
+        // TEST: auth
         vm.expectRevert("Auth: UNAUTHORIZED");
         vm.prank(testMinter);
         escrow.claimProfit();
 
+        // TEST: profitWithdraw is not he same as feeProfit
+        // 1% fee
+        vm.prank(techOpsMultisig);
+        bsmTester.setFeeToSell(900);
+        uint256 fee = _feeToSell(assetTokenAmount);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        
+        // provoke deficit by removing some asset token
+        fee = escrow.feeProfit();
+        assertGt(fee, 0);
+        uint256 amountToDeposit = assetTokenAmount - fee + 1;// Will result in redeeming from vault
+
+        if (!USE_BASE_ESCROW) {
+            vm.prank(techOpsMultisig);
+            ERC4626Escrow(address(escrow)).depositToExternalVault(amountToDeposit, 0);
+
+            // provoke different redeemed amount
+            vm.prank(address(escrow));
+            externalVault.transfer(vm.addr(0xdead), fee - 1);
+        }
+
+        uint256 prevFeeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
+        vm.recordLogs();
         vm.prank(techOpsMultisig);
         escrow.claimProfit();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        // Get the keccak256 hash of the event signature
+        bytes32 expectedTopic = keccak256("ProfitClaimed(uint256)");
+        uint256 profitAmount;
+        assertEq(entries[entries.length - 1].topics[0], expectedTopic);
+        for (uint256 i = 0; i < entries.length; i++) {
+            Vm.Log memory log = entries[i];
+
+            if (log.topics[0] == expectedTopic) {
+                profitAmount = abi.decode(log.data, (uint256));
+                if (!USE_BASE_ESCROW) {
+                    assertNotEq(profitAmount, fee);
+                } else {
+                    assertEq(profitAmount, fee);
+                }
+            }
+        }
+
+        uint256 feeRecipientBalance = escrow.ASSET_TOKEN().balanceOf(escrow.FEE_RECIPIENT());
+        uint256 profit = feeRecipientBalance - prevFeeRecipientBalance;
+        assertEq(profit, profitAmount);
+
+        // TEST: event + accounting
+        fee = _feeToSell(assetTokenAmount);
+        vm.prank(testMinter);
+        bsmTester.sellAsset(assetTokenAmount, testMinter, 0);
+        assertEq(escrow.feeProfit(), fee);
+        
+        vm.expectEmit(address(escrow));
+        emit IEscrow.ProfitClaimed(fee);
+        vm.prank(techOpsMultisig);
+        escrow.claimProfit();
+
+        assertEq(escrow.feeProfit(), 0);
     }
 
     function testSetFeeToBuy() public {
