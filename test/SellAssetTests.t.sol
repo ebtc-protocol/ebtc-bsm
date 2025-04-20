@@ -78,6 +78,9 @@ contract SellAssetTests is BSMTestBase {
     }
 
     function testSellTokenFailureZeroAmount() public {
+        vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
+        bsmTester.previewSellAsset(0);        
+
         vm.prank(testMinter);
         vm.expectRevert(abi.encodeWithSelector(EbtcBSM.ZeroAmount.selector));
         bsmTester.sellAsset(0, testMinter, 2);
