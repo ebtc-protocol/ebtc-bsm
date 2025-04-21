@@ -3,7 +3,7 @@
 pragma solidity ^0.8.29;
 
 import "./EbtcBSM.sol";
-import "./ERC4626Escrow.sol";
+import "./BaseEscrow.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BSMDeployer is Ownable {
@@ -23,8 +23,7 @@ contract BSMDeployer is Ownable {
         address _buyAssetConstraint,
         address _ebtcToken,
         address _feeRecipient,
-        address _governance,
-        address _externalVault
+        address _governance
     ) external onlyOwner {
         EbtcBSM bsm = new EbtcBSM(
             address(_assetToken),
@@ -35,8 +34,7 @@ contract BSMDeployer is Ownable {
             address(_governance)
         );
 
-        ERC4626Escrow escrow = new ERC4626Escrow(
-            address(_externalVault),
+        BaseEscrow escrow = new BaseEscrow(
             address(_assetToken),
             address(bsm),
             address(_governance),
