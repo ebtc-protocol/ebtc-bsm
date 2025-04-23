@@ -13,8 +13,8 @@ import "../../src/RateLimitingConstraint.sol";
 import {console} from "forge-std/console.sol";
 contract BSMForkTests is Test {
     // Gather contracts
-    address constant ebtc = 0x661c70333AA1850CcDBAe82776Bb436A0fCfeEfB;
-    address constant cbBtc = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
+    IERC20 constant ebtc = IERC20(0x661c70333AA1850CcDBAe82776Bb436A0fCfeEfB);
+    IERC20 constant cbBtc = IERC20(0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf);
     address defaultGovernance = 0x2A095d44831C26cFB6aCb806A6531AE3CA32DBc1;
     ActivePoolObserver public activePoolObserver = ActivePoolObserver(0x1Ffe740F6f1655759573570de1E53E7b43E9f01a);
     AssetChainlinkAdapter public assetChainlinkAdapter = AssetChainlinkAdapter(0x0457B8e9dd5278fe89c97E0246A3c6Cf2C0d6034);
@@ -25,6 +25,7 @@ contract BSMForkTests is Test {
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
     address testAuthorizedAccount = address(0x1);
+    address testUnAuthorizedAccount = address(0x2);
     address owner;
     //TODO I might not need all of this
     uint256 initBlock = 22313077;// Block after BSM was deployed
@@ -43,7 +44,7 @@ contract BSMForkTests is Test {
         owner = authority.owner();
 
         // give eBTC minter and burner roles to tester account
-        setUserRole(testAuthorizedAccount, 1, true);//TODO find authorized user for this
+        setUserRole(testAuthorizedAccount, 1, true);//TODO verify if this is giving the correct roles
         setUserRole(testAuthorizedAccount, 2, true);
         setRoleName(15, "BSM: Governance");
         setRoleName(16, "BSM: AuthorizedUser");
@@ -68,8 +69,8 @@ contract BSMForkTests is Test {
         assertEq(address(ebtcBSM.oraclePriceConstraint()), address(oraclePriceConstraint));
         assertEq(address(ebtcBSM.rateLimitingConstraint()), address(rateLimitingConstraint));
         assertEq(address(ebtcBSM.buyAssetConstraint()), address(dummyConstraint));
-        assertEq(address(ebtcBSM.ASSET_TOKEN()), cbBtc);
-        assertEq(address(ebtcBSM.EBTC_TOKEN()), ebtc);
+        assertEq(address(ebtcBSM.ASSET_TOKEN()), address(cbBtc));
+        assertEq(address(ebtcBSM.EBTC_TOKEN()), address(ebtc));
 
         // Check initialization
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
@@ -81,13 +82,46 @@ contract BSMForkTests is Test {
         // test roles
         // test pause
     }
+
     // Buy & Sell tests
     function testBuyAndSell() public {
+        uint256 amount = 1e18;
         // Basic sell
-        // basic buy
+        cbBtc.mint(testAuthorizedAccount, amount);
+        assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
+        assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
 
+        vm.expectEmit();
+        emit IEbtcBSM.AssetSold(amount, amount, 0);
+
+        vm.prank(testAuthorizedAccount);
+        assertEq(ebtcBSM.sellAsset(amount, testAuthorizedAccount, 0), amount);
+
+        assertEq(ebtcBSM.totalMinted(), amount);
+        assertEq(baseEscrow.totalAssetsDeposited(), amount);
+
+        assertEq(cbBtc.balanceOf(testAuthorizedAccount), 0);
+        assertEq(ebtc.balanceOf(testAuthorizedAccount), amount);
+        assertEq(cbBtc.balanceOf(address(ebtcBSM.escrow())), amount);
+
+        assertEq(ebtcBSM.totalMinted(), baseEscrow.totalAssetsDeposited());
+        // Basic buy
+        assertEq(ebtcBSM.previewBuyAsset(amount), amount);
+
+        vm.recordLogs();
+        vm.prank(testAuthorizedAccount);
+
+        assertEq(ebtcBSM.buyAsset(amount, testAuthorizedAccount, 0), amount);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        assertEq(entries[0].topics[0], keccak256("Transfer(address,address,uint256)"));
+        assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
+        assertEq(entries[2].topics[0], keccak256("AssetBought(uint256,uint256,uint256)"));
+
+        assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
+        assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
     }
-    // Helpers
+    // Helpers TODO: find a way to use the existing ones
     function setUserRole(address _user, uint8 _role, bool _enabled) internal prankDefaultGovernance {
         authority.setUserRole(_user, _role, _enabled);
     }
