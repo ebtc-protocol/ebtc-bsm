@@ -25,25 +25,27 @@ contract BSMForkTests is Test {
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
     address testAuthorizedAccount = address(0x1);
+    address owner;
     //TODO I might not need all of this
     uint256 initBlock = 22313077;// Block after BSM was deployed
     uint256 submitBlock = 22327557;// Block where governance changes were submitted
 
     modifier prankDefaultGovernance() {
-        vm.prank(defaultGovernance);
+        vm.prank(owner);
         _;
     }
 
     //TODO assign roles
+    //TODO setup should run bore everything not before each
       function setUp() public {
         uint256 forkId = vm.createFork(vm.envString("RPC_URL"));
         vm.selectFork(forkId);
-        //vm.startPrank(testAuthorizedAccount);
-        console.log("Start");
+        owner = authority.owner();
+
         // give eBTC minter and burner roles to tester account
-       /* setUserRole(testAuthorizedAccount, 1, true);console.log("Start");
+        setUserRole(testAuthorizedAccount, 1, true);//TODO find authorized user for this
         setUserRole(testAuthorizedAccount, 2, true);
-        setRoleName(15, "BSM: Governance");console.log("Start");
+        setRoleName(15, "BSM: Governance");
         setRoleName(16, "BSM: AuthorizedUser");
         setRoleCapability(
         15,
@@ -56,7 +58,7 @@ contract BSMForkTests is Test {
         address(ebtcBSM),
         ebtcBSM.setFeeToSell.selector,
         true
-        );*/
+        );
     }
 
     // Deployment tests
