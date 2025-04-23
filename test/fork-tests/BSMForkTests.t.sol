@@ -24,6 +24,7 @@ contract BSMForkTests is Test {
     OraclePriceConstraint public oraclePriceConstraint = OraclePriceConstraint(0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e);
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
+    address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
     address testAuthorizedAccount = address(0x1);
     address testUnAuthorizedAccount = address(0x2);
     address owner;
@@ -85,9 +86,11 @@ contract BSMForkTests is Test {
 
     // Buy & Sell tests
     function testBuyAndSell() public {
-        uint256 amount = 1e18;
+        uint256 amount = cbBtc.balanceOf(cbBtcPool) / 4;
         // Basic sell
-        cbBtc.mint(testAuthorizedAccount, amount);
+        vm.prank(cbBtcPool);// Fund account
+        cbBtc.transfer(testAuthorizedAccount, amount);
+
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
         assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
 
