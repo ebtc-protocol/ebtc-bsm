@@ -10,9 +10,11 @@ import "../../src/EbtcBSM.sol";
 import "../../src/Dependencies/Governor.sol";
 import "../../src/OraclePriceConstraint.sol";
 import "../../src/RateLimitingConstraint.sol";
-
+import {console} from "forge-std/console.sol";
 contract BSMForkTests is Test {
     // Gather contracts
+    address constant ebtc = 0x661c70333AA1850CcDBAe82776Bb436A0fCfeEfB;
+    address constant cbBtc = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address defaultGovernance = 0x2A095d44831C26cFB6aCb806A6531AE3CA32DBc1;
     ActivePoolObserver public activePoolObserver = ActivePoolObserver(0x1Ffe740F6f1655759573570de1E53E7b43E9f01a);
     AssetChainlinkAdapter public assetChainlinkAdapter = AssetChainlinkAdapter(0x0457B8e9dd5278fe89c97E0246A3c6Cf2C0d6034);
@@ -34,31 +36,40 @@ contract BSMForkTests is Test {
 
     //TODO assign roles
       function setUp() public {
-        uint256 forkId = vm.createFork(vm.rpcUrl("RPC_URL"));
+        uint256 forkId = vm.createFork(vm.envString("RPC_URL"));
         vm.selectFork(forkId);
-        vm.startPrank(testAccount);
-
+        //vm.startPrank(testAuthorizedAccount);
+        console.log("Start");
         // give eBTC minter and burner roles to tester account
-        setUserRole(testAuthorizedAccount, 1, true);
+       /* setUserRole(testAuthorizedAccount, 1, true);console.log("Start");
         setUserRole(testAuthorizedAccount, 2, true);
-        setRoleName(15, "BSM: Governance");
+        setRoleName(15, "BSM: Governance");console.log("Start");
         setRoleName(16, "BSM: AuthorizedUser");
         setRoleCapability(
         15,
         address(ebtcBSM),
-        bsmTester.setFeeToBuy.selector,
+        ebtcBSM.setFeeToBuy.selector,
         true
         );
         setRoleCapability(
         15,
         address(ebtcBSM),
-        bsmTester.setFeeToSell.selector,
+        ebtcBSM.setFeeToSell.selector,
         true
-        );
+        );*/
     }
 
     // Deployment tests
     function testDeployments() public {
+        // Check values
+        assertEq(address(ebtcBSM.escrow()), address(baseEscrow));
+        assertEq(address(ebtcBSM.oraclePriceConstraint()), address(oraclePriceConstraint));
+        assertEq(address(ebtcBSM.rateLimitingConstraint()), address(rateLimitingConstraint));
+        assertEq(address(ebtcBSM.buyAssetConstraint()), address(dummyConstraint));
+        assertEq(address(ebtcBSM.ASSET_TOKEN()), cbBtc);
+        assertEq(address(ebtcBSM.EBTC_TOKEN()), ebtc);
+
+        // Check initialization
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
         ebtcBSM.initialize(address(baseEscrow));
     }
