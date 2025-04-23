@@ -12,7 +12,7 @@ contract ActivePoolObserverTest is Test {
     ITwapWeightedObserver public activePool = ITwapWeightedObserver(0x6dBDB6D420c110290431E863A1A978AE53F69ebC);
 
     function setUp() public {
-        activePoolObserver = ActivePoolObserver(0x1ffe740f6f1655759573570de1e53e7b43e9f01a);
+        activePoolObserver = new ActivePoolObserver(ITwapWeightedObserver(0x6dBDB6D420c110290431E863A1A978AE53F69ebC));
     }
 
     // forge test --match-test test_check_math --rpc-url https://eth-mainnet.g.alchemy.com/v2/mUhSl9trIQUL4usawoforWzPFxtruAm7 -vvv

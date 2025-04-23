@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
-import {ActivePoolObserver} from "../src/ActivePoolObserver.sol"; 
-import {ITwapWeightedObserver} from "../src/Dependencies/ITwapWeightedObserver.sol"; 
+import {ActivePoolObserver} from "../../src/ActivePoolObserver.sol"; 
+import {ITwapWeightedObserver} from "../../src/Dependencies/ITwapWeightedObserver.sol"; 
 
 contract ActivePoolObserverTest is Test {
     ActivePoolObserver public activePoolObserver;
@@ -12,7 +12,7 @@ contract ActivePoolObserverTest is Test {
     ITwapWeightedObserver public activePool = ITwapWeightedObserver(0x6dBDB6D420c110290431E863A1A978AE53F69ebC);
 
     function setUp() public {
-        activePoolObserver = new ActivePoolObserver(ITwapWeightedObserver(0x6dBDB6D420c110290431E863A1A978AE53F69ebC));//Use actual address TODO
+        activePoolObserver = ActivePoolObserver(0x1Ffe740F6f1655759573570de1E53E7b43E9f01a);
     }
 
     // forge test --match-test test_check_math --rpc-url https://eth-mainnet.g.alchemy.com/v2/mUhSl9trIQUL4usawoforWzPFxtruAm7 -vvv
