@@ -76,6 +76,13 @@ contract BSMForkTests is Test {
         // Check initialization
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
         ebtcBSM.initialize(address(baseEscrow));
+
+        // No minting configuration set
+        RateLimitingConstraint.MintingConfig memory config = rateLimitingConstraint.getMintingConfig(address(ebtcBSM));
+
+        assertEq(config.relativeCapBPS, 0);
+        assertEq(config.absoluteCap, 0);
+        assertEq(config.useAbsoluteCap, false);
     }
 
     // AUTH tests
