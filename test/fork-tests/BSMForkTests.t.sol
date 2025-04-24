@@ -26,9 +26,8 @@ contract BSMForkTests is Test {
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
     address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
     address testAuthorizedAccount = address(0x1);
-    address testUnAuthorizedAccount = address(0x2);
     address owner;
-    uint256 initBlock = 22313077;// Block after BSM was deployed
+    uint256 initBlock = 22319821;// Block where BSM and peripheral contracts were already deployed
 
     modifier prankDefaultGovernance() {
         vm.prank(owner);
@@ -37,15 +36,14 @@ contract BSMForkTests is Test {
 
     //TODO setup should run before everything not before each
       function setUp() public {
-        uint256 forkId = vm.createFork(vm.envString("RPC_URL"), 22319821);// oracle constraint doesnt fail at this height TODO figure why
+        uint256 forkId = vm.createFork(vm.envString("RPC_URL"), initBlock);
         vm.selectFork(forkId);
         owner = authority.owner();
 
         // give eBTC minter and burner roles to tester account
         setUserRole(address(ebtcBSM), 1, true);
         setUserRole(address(ebtcBSM), 2, true);
-        setRoleName(15, "BSM: Governance");
-        setRoleName(16, "BSM: AuthorizedUser");
+
         setRoleCapability(
             15,
             address(ebtcBSM),
@@ -92,11 +90,38 @@ contract BSMForkTests is Test {
 
     // AUTH tests
     function testSecurity() public {
-        // test roles
         vm.expectRevert("Auth: UNAUTHORIZED");
-        vm.prank(testUnAuthorizedAccount);
         rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(0, 0, false));
-        // test pause
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.sellAssetNoFee(0, address(1), 0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.buyAssetNoFee(0, address(1), 0); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setFeeToSell(0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setFeeToBuy(0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setRateLimitingConstraint(address(1));
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setOraclePriceConstraint(address(1)); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setBuyAssetConstraint(address(1)); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.updateEscrow(address(1));
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.pause();
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.unpause();
     }
 
     // Buy & Sell tests
@@ -151,7 +176,8 @@ contract BSMForkTests is Test {
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
         assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
     }
-    // Helpers TODO: find a way to use the existing ones
+
+    // Helpers
     function setUserRole(address _user, uint8 _role, bool _enabled) internal prankDefaultGovernance {
         authority.setUserRole(_user, _role, _enabled);
     }
@@ -166,9 +192,5 @@ contract BSMForkTests is Test {
             _functionSig,
             _enabled
         );
-    }
-
-    function setRoleName(uint8 _role, string memory _roleName) internal prankDefaultGovernance {
-        authority.setRoleName(_role, _roleName);
     }
 }
