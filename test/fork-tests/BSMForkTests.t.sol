@@ -39,7 +39,7 @@ contract BSMForkTests is Test {
         vm.selectFork(forkId);
         owner = authority.owner();
 
-        // give eBTC minter and burner roles to tester account
+        // give eBTC minter and burner roles
         setUserRole(address(ebtcBSM), 1, true);
         setUserRole(address(ebtcBSM), 2, true);
 
@@ -61,7 +61,7 @@ contract BSMForkTests is Test {
             rateLimitingConstraint.setMintingConfig.selector,
             true
         );
-        // Give ebtc tech ops role 15
+
         setUserRole(testAuthorizedAccount, 15, true);
     }
 
