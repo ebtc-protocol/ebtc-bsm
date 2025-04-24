@@ -15,11 +15,11 @@ contract BSMForkTests is Test {
     // Gather contracts
     IERC20 constant ebtc = IERC20(0x661c70333AA1850CcDBAe82776Bb436A0fCfeEfB);
     IERC20 constant cbBtc = IERC20(0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf);
-    address defaultGovernance = 0x2A095d44831C26cFB6aCb806A6531AE3CA32DBc1;
+
     ActivePoolObserver public activePoolObserver = ActivePoolObserver(0x1Ffe740F6f1655759573570de1E53E7b43E9f01a);
     AssetChainlinkAdapter public assetChainlinkAdapter = AssetChainlinkAdapter(0x0457B8e9dd5278fe89c97E0246A3c6Cf2C0d6034);
     DummyConstraint public dummyConstraint = DummyConstraint(0x581F1707c54F4f2f630b9726d717fA579d526976);
-    Governor public authority = Governor(defaultGovernance);
+    Governor public authority = Governor(0x2A095d44831C26cFB6aCb806A6531AE3CA32DBc1);
     RateLimitingConstraint public rateLimitingConstraint = RateLimitingConstraint(0x6c289F91A8B7f622D8d5DcF252E8F5857CAc3E8B);
     OraclePriceConstraint public oraclePriceConstraint = OraclePriceConstraint(0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e);
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
@@ -42,8 +42,8 @@ contract BSMForkTests is Test {
         owner = authority.owner();
 
         // give eBTC minter and burner roles to tester account
-        setUserRole(testAuthorizedAccount, 1, true);//TODO verify if this is giving the correct roles
-        setUserRole(testAuthorizedAccount, 2, true);
+        setUserRole(address(ebtcBSM), 1, true);
+        setUserRole(address(ebtcBSM), 2, true);
         setRoleName(15, "BSM: Governance");
         setRoleName(16, "BSM: AuthorizedUser");
         setRoleCapability(
@@ -104,11 +104,15 @@ contract BSMForkTests is Test {
         uint256 relativeCapBPS = 1000;
         uint256 totalEbtcSupply = activePoolObserver.observe();
         uint256 maxMint = (totalEbtcSupply * relativeCapBPS) / rateLimitingConstraint.BPS();//ebtc decimals
-        uint256 amount = (maxMint / 4) * ebtcBSM.ASSET_TOKEN_PRECISION() / 1e18;
-        
+        uint256 amount = (maxMint / 4) * ebtcBSM.ASSET_TOKEN_PRECISION() / 1e18;// asset decimals
+        uint256 ebtcAmount = amount * 1e18 / ebtcBSM.ASSET_TOKEN_PRECISION();
+
         // Basic sell
         vm.prank(cbBtcPool);// Fund account
         cbBtc.transfer(testAuthorizedAccount, amount);
+        
+        vm.prank(testAuthorizedAccount);
+        cbBtc.approve(address(ebtcBSM), amount);
 
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
         assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
@@ -117,26 +121,27 @@ contract BSMForkTests is Test {
         rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(relativeCapBPS, 0, false));
         
         vm.expectEmit();
-        emit IEbtcBSM.AssetSold(amount, amount, 0);
+        emit IEbtcBSM.AssetSold(amount, ebtcAmount, 0);
 
         vm.prank(testAuthorizedAccount);
-        assertEq(ebtcBSM.sellAsset(amount, testAuthorizedAccount, 0), amount);
+        uint256 sellResult = ebtcBSM.sellAsset(amount, testAuthorizedAccount, 0);
+        assertEq(sellResult, ebtcAmount);
 
-        assertEq(ebtcBSM.totalMinted(), amount);
+        // These 2 checks also check that ebtcBSM.totalMinted() == baseEscrow.totalAssetsDeposited()
+        assertEq(ebtcBSM.totalMinted(), ebtcAmount);
         assertEq(baseEscrow.totalAssetsDeposited(), amount);
 
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), 0);
-        assertEq(ebtc.balanceOf(testAuthorizedAccount), amount);
+        assertEq(ebtc.balanceOf(testAuthorizedAccount), ebtcAmount);
         assertEq(cbBtc.balanceOf(address(ebtcBSM.escrow())), amount);
 
-        assertEq(ebtcBSM.totalMinted(), baseEscrow.totalAssetsDeposited());
         // Basic buy
-        assertEq(ebtcBSM.previewBuyAsset(amount), amount);
+        assertEq(ebtcBSM.previewBuyAsset(ebtcAmount), amount);
 
         vm.recordLogs();
         vm.prank(testAuthorizedAccount);
 
-        assertEq(ebtcBSM.buyAsset(amount, testAuthorizedAccount, 0), amount);
+        assertEq(ebtcBSM.buyAsset(ebtcAmount, testAuthorizedAccount, 0), amount);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         assertEq(entries[0].topics[0], keccak256("Transfer(address,address,uint256)"));
