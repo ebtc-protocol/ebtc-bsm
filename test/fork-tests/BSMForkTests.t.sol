@@ -10,7 +10,7 @@ import "../../src/EbtcBSM.sol";
 import "../../src/Dependencies/Governor.sol";
 import "../../src/OraclePriceConstraint.sol";
 import "../../src/RateLimitingConstraint.sol";
-import {console} from "forge-std/console.sol";
+
 contract BSMForkTests is Test {
     // Gather contracts
     IERC20 constant ebtc = IERC20(0x661c70333AA1850CcDBAe82776Bb436A0fCfeEfB);
@@ -34,8 +34,7 @@ contract BSMForkTests is Test {
         _;
     }
 
-    //TODO setup should run before everything not before each
-      function setUp() public {
+    function setUp() public {
         uint256 forkId = vm.createFork(vm.envString("RPC_URL"), initBlock);
         vm.selectFork(forkId);
         owner = authority.owner();
@@ -92,6 +91,12 @@ contract BSMForkTests is Test {
     function testSecurity() public {
         vm.expectRevert("Auth: UNAUTHORIZED");
         rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(0, 0, false));
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        oraclePriceConstraint.setMinPrice(0);
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        oraclePriceConstraint.setOracleFreshness(0);
         
         vm.expectRevert("Auth: UNAUTHORIZED");
         ebtcBSM.sellAssetNoFee(0, address(1), 0);
@@ -122,6 +127,12 @@ contract BSMForkTests is Test {
         
         vm.expectRevert("Auth: UNAUTHORIZED");
         ebtcBSM.unpause();
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        baseEscrow.claimProfit();
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        baseEscrow.claimTokens(address(1), 0);
     }
 
     // Buy & Sell tests
