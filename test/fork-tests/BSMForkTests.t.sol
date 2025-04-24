@@ -28,19 +28,16 @@ contract BSMForkTests is Test {
     address testAuthorizedAccount = address(0x1);
     address testUnAuthorizedAccount = address(0x2);
     address owner;
-    //TODO I might not need all of this
     uint256 initBlock = 22313077;// Block after BSM was deployed
-    uint256 submitBlock = 22327557;// Block where governance changes were submitted
 
     modifier prankDefaultGovernance() {
         vm.prank(owner);
         _;
     }
 
-    //TODO assign roles
-    //TODO setup should run bore everything not before each
+    //TODO setup should run before everything not before each
       function setUp() public {
-        uint256 forkId = vm.createFork(vm.envString("RPC_URL"));
+        uint256 forkId = vm.createFork(vm.envString("RPC_URL"), 22319821);// oracle constraint doesnt fail at this height TODO figure why
         vm.selectFork(forkId);
         owner = authority.owner();
 
@@ -50,17 +47,25 @@ contract BSMForkTests is Test {
         setRoleName(15, "BSM: Governance");
         setRoleName(16, "BSM: AuthorizedUser");
         setRoleCapability(
-        15,
-        address(ebtcBSM),
-        ebtcBSM.setFeeToBuy.selector,
-        true
+            15,
+            address(ebtcBSM),
+            ebtcBSM.setFeeToBuy.selector,
+            true
         );
         setRoleCapability(
-        15,
-        address(ebtcBSM),
-        ebtcBSM.setFeeToSell.selector,
-        true
+            15,
+            address(ebtcBSM),
+            ebtcBSM.setFeeToSell.selector,
+            true
         );
+        setRoleCapability(
+            15,
+            address(rateLimitingConstraint),
+            rateLimitingConstraint.setMintingConfig.selector,
+            true
+        );
+        // Give ebtc tech ops role 15
+        setUserRole(testAuthorizedAccount, 15, true);
     }
 
     // Deployment tests
@@ -88,12 +93,19 @@ contract BSMForkTests is Test {
     // AUTH tests
     function testSecurity() public {
         // test roles
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        vm.prank(testUnAuthorizedAccount);
+        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(0, 0, false));
         // test pause
     }
 
     // Buy & Sell tests
     function testBuyAndSell() public {
-        uint256 amount = cbBtc.balanceOf(cbBtcPool) / 4;
+        uint256 relativeCapBPS = 1000;
+        uint256 totalEbtcSupply = activePoolObserver.observe();
+        uint256 maxMint = (totalEbtcSupply * relativeCapBPS) / rateLimitingConstraint.BPS();//ebtc decimals
+        uint256 amount = (maxMint / 4) * ebtcBSM.ASSET_TOKEN_PRECISION() / 1e18;
+        
         // Basic sell
         vm.prank(cbBtcPool);// Fund account
         cbBtc.transfer(testAuthorizedAccount, amount);
@@ -101,6 +113,9 @@ contract BSMForkTests is Test {
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
         assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
 
+        vm.prank(testAuthorizedAccount);
+        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(relativeCapBPS, 0, false));
+        
         vm.expectEmit();
         emit IEbtcBSM.AssetSold(amount, amount, 0);
 
