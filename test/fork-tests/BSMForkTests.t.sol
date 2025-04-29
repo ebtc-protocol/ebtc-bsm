@@ -33,7 +33,7 @@ contract BSMForkTests is Test {
         vm.prank(owner);
         _;
     }
-    // TODO introduce roles
+
     function setUp() public {
         uint256 forkId = vm.createFork(vm.envString("RPC_URL"), initBlock);
         vm.selectFork(forkId);
@@ -187,6 +187,64 @@ contract BSMForkTests is Test {
         assertEq(cbBtc.balanceOf(testAuthorizedAccount), amount);
         assertEq(ebtc.balanceOf(testAuthorizedAccount), 0);
     }
+
+    /* TODO tests all of these
+    setUserRole(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 1, true)
+	
+setUserRole(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 2, true)
+
+setRoleName(15, BSM: Admin)
+	
+setRoleName(16, BSM: Fee Manager)
+	
+setRoleName(17, BSM: Pauser)
+	
+setRoleName(18, BSM: Escrow Manager)
+	
+setRoleName(19, BSM: Constraint Manager)
+	
+setRoleName(20, BSM: Authorized User)
+	
+setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8b6a101a, true)
+	
+setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x037ba2ab, true)
+	
+setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xe19e50d4, true)
+	
+setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x6045bfc5, true)
+	
+setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9154cff2, true)
+	
+setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9a24ceb8, true)
+	
+setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8456cb59, true)
+	
+setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x3f4ba83a, true)
+	
+setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xf011a7af, true)
+	
+setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xfe417fa5, true)
+	
+setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0x5ea8cd12, true)
+	
+setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0xb6b2d4a6, true)
+	
+setRoleCapability(19, 0x6c289F91A8B7f622D8d5DcF252E8F5857CAc3E8B, 0x0439e932, true)
+	
+setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xf00e8600, true)
+	
+setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xc2a538e6, true)
+	
+setUserRole(0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264, 15, true)
+	
+setUserRole(0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602, 16, true)
+	
+setUserRole(0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4, 17, true)
+	
+setUserRole(0x690C74AF48BE029e763E61b4aDeB10E06119D3ba, 18, true)
+	
+setUserRole(0x690C74AF48BE029e763E61b4aDeB10E06119D3ba, 19, true)
+    */
 
     // Helpers
     function setUserRole(address _user, uint8 _role, bool _enabled) internal prankDefaultGovernance {
