@@ -194,72 +194,88 @@ contract BSMForkTests is Test {
     function testAdminRole() public {
         address user = 0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264;
         uint8 roleId = 15;
-        /*
-        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8b6a101a, true)  
-        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x037ba2ab, true)
-        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xe19e50d4, true)
-        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x6045bfc5, true) */
-        // Test right address has this role
+
         assertTrue(contains(authority.getRolesForUser(user), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Admin");
-        // Test role capabilities
+        
+        //TODO check correct capabilities by role and correct targets
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x8b6a101a);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x037ba2ab);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xe19e50d4);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x6045bfc5);
+
+        authority.canCall(user, address(ebtcBSM), 0x8b6a101a);
+        authority.canCall(user, address(ebtcBSM), 0x037ba2ab);
+        authority.canCall(user, address(ebtcBSM), 0xe19e50d4);
+        authority.canCall(user, address(ebtcBSM), 0x6045bfc5);
+        //TODO test with bsm actual contract
         
     }
 
     function testFeeMngRole() public {
         address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
         uint8 roleId = 16;
-    /**
-    setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9154cff2, true)
-        
-    setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9a24ceb8, true) */
+
         assertEq(authority.getRoleName(roleId), "BSM: Fee Manager");
         assertTrue(contains(authority.getRolesForUser(user), roleId));
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x9154cff2);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x9a24ceb8);
+
+        authority.canCall(user, address(ebtcBSM), 0x9154cff2);
+        authority.canCall(user, address(ebtcBSM), 0x9a24ceb8);
     }
 
     function testPauserRole() public {
         address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
         uint8 roleId = 17;
-    /**
-    setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8456cb59, true)
-        
-    setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x3f4ba83a, true)	 */
+
         assertTrue(contains(authority.getRolesForUser(user), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Pauser");
+
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x8456cb59);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x3f4ba83a);
+
+        authority.canCall(user, address(ebtcBSM), 0x8456cb59);
+        authority.canCall(user, address(ebtcBSM), 0x3f4ba83a);
     }
 
     function testEscrowMngRole() public {
         address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
         uint8 roleId = 18;
-    /**
-    setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xf011a7af, true)
-        
-    setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xfe417fa5, true)	 */
+
         assertTrue(contains(authority.getRolesForUser(user), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Escrow Manager");
+
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xf011a7af);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xfe417fa5);
+
+        authority.canCall(user, address(ebtcBSM), 0xf011a7af);
+        authority.canCall(user, address(ebtcBSM), 0xfe417fa5);
     }
 
     function testConstraintMngRole() public {
         address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
         uint8 roleId = 19;
-    /**
-    setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0x5ea8cd12, true)
-        
-    setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0xb6b2d4a6, true)
-        
-    setRoleCapability(19, 0x6c289F91A8B7f622D8d5DcF252E8F5857CAc3E8B, 0x0439e932, true)
 
-	 */
         assertTrue(contains(authority.getRolesForUser(user), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Constraint Manager");
+
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x5ea8cd12);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xb6b2d4a6);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x0439e932);
+
+        authority.canCall(user, address(ebtcBSM), 0x5ea8cd12);
+        authority.canCall(user, address(ebtcBSM), 0xb6b2d4a6);
+        authority.canCall(user, address(ebtcBSM), 0x0439e932);
     }
 
     function testAuthUserRole() public {
         uint8 roleId = 20;
-    /**
-    setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xf00e8600, true)    
-    setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xc2a538e6, true) */
+
         assertEq(authority.getRoleName(roleId), "BSM: Authorized User");
+
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xf00e8600);
+        authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xc2a538e6);
     }
 
     // Helpers
