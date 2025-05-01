@@ -27,8 +27,8 @@ contract BSMForkTests is Test {
     address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
     address testAuthorizedAccount = address(0x1);
     address owner;
-    uint256 initBlock = 22319821;// Block where BSM and peripheral contracts were already deployed
-
+    uint256 initBlock = 22384650;// Block where BSM and peripheral contracts were already deployed and governance roles set
+    //TODO modify existing tests to use correct roles
     modifier prankDefaultGovernance() {
         vm.prank(owner);
         _;
@@ -40,8 +40,8 @@ contract BSMForkTests is Test {
         owner = authority.owner();
 
         // give eBTC minter and burner roles
-        setUserRole(address(ebtcBSM), 1, true);
-        setUserRole(address(ebtcBSM), 2, true);
+        /*setUserRole(address(ebtcBSM), 1, true); already at current block
+        setUserRole(address(ebtcBSM), 2, true);*/
 
         setRoleCapability(
             15,
@@ -85,6 +85,9 @@ contract BSMForkTests is Test {
         assertEq(config.relativeCapBPS, 0);
         assertEq(config.absoluteCap, 0);
         assertEq(config.useAbsoluteCap, false);
+
+        // ebtcBsm user roles
+        // 1 and 2 must have TODO
     }
 
     // AUTH tests
@@ -189,48 +192,57 @@ contract BSMForkTests is Test {
     }
     // TODO extract the setup and make a baseTest for fork tests
     function testAdminRole() public {
+        address user = 0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264;
+        uint8 roleId = 15;
         /*
-        setUserRole(0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264, 15, true)
-        setRoleName(15, BSM: Admin)
-        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8b6a101a, true)
-            
+        setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8b6a101a, true)  
         setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x037ba2ab, true)
-            
         setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xe19e50d4, true)
-            
         setRoleCapability(15, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x6045bfc5, true) */
         // Test right address has this role
+        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertEq(authority.getRoleName(roleId), "BSM: Admin");
         // Test role capabilities
-        // Test role cannot call other functions
+        
     }
 
     function testFeeMngRole() public {
-    /**setRoleName(16, BSM: Fee Manager)
-    setUserRole(0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602, 16, true)
+        address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
+        uint8 roleId = 16;
+    /**
     setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9154cff2, true)
         
     setRoleCapability(16, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x9a24ceb8, true) */
+        assertEq(authority.getRoleName(roleId), "BSM: Fee Manager");
+        assertTrue(contains(authority.getRolesForUser(user), roleId));
     }
 
     function testPauserRole() public {
-    /**setRoleName(17, BSM: Pauser)	
-    setUserRole(0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4, 17, true)
+        address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
+        uint8 roleId = 17;
+    /**
     setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x8456cb59, true)
         
     setRoleCapability(17, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0x3f4ba83a, true)	 */
+        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertEq(authority.getRoleName(roleId), "BSM: Pauser");
     }
 
     function testEscrowMngRole() public {
-    /**setRoleName(18, BSM: Escrow Manager)
-    setUserRole(0x690C74AF48BE029e763E61b4aDeB10E06119D3ba, 18, true)
+        address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
+        uint8 roleId = 18;
+    /**
     setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xf011a7af, true)
         
     setRoleCapability(18, 0x686FdecC0572e30768331D4e1a44E5077B2f6083, 0xfe417fa5, true)	 */
+        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertEq(authority.getRoleName(roleId), "BSM: Escrow Manager");
     }
 
     function testConstraintMngRole() public {
-    /**setRoleName(19, BSM: Constraint Manager)
-    setUserRole(0x690C74AF48BE029e763E61b4aDeB10E06119D3ba, 19, true)
+        address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
+        uint8 roleId = 19;
+    /**
     setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0x5ea8cd12, true)
         
     setRoleCapability(19, 0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e, 0xb6b2d4a6, true)
@@ -238,23 +250,17 @@ contract BSMForkTests is Test {
     setRoleCapability(19, 0x6c289F91A8B7f622D8d5DcF252E8F5857CAc3E8B, 0x0439e932, true)
 
 	 */
+        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertEq(authority.getRoleName(roleId), "BSM: Constraint Manager");
     }
 
     function testAuthUserRole() public {
+        uint8 roleId = 20;
     /**
-    setRoleName(20, BSM: Authorized User)
-        
-
-        
-    setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xf00e8600, true)
-        
+    setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xf00e8600, true)    
     setRoleCapability(20, 0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 0xc2a538e6, true) */
+        assertEq(authority.getRoleName(roleId), "BSM: Authorized User");
     }
-
-    /* TODO tests all of these
-    setUserRole(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 1, true)TODO role test
-    setUserRole(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A, 2, true)TODO role test
-    */
 
     // Helpers
     function setUserRole(address _user, uint8 _role, bool _enabled) internal prankDefaultGovernance {
@@ -272,4 +278,14 @@ contract BSMForkTests is Test {
             _enabled
         );
     }
+
+    function contains(uint8[] memory arr, uint8 value) internal pure returns (bool) {
+        for (uint i = 0; i < arr.length; i++) {
+            if (arr[i] == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
