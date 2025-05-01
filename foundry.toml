@@ -14,3 +14,7 @@ remappings = [
 
 optimizer = true
 optimizer_runs = 200
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+eth_mainnet = "${ETH_MAINNET_RPC_URL}"

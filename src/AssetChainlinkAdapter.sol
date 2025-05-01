@@ -50,6 +50,7 @@ contract AssetChainlinkAdapter is AggregatorV3Interface {
      * @notice Contract constructor
      * @param _assetUsdClFeed AggregatorV3Interface contract feed for Asset -> USD
      * @param _btcUsdClFeed AggregatorV3Interface contract feed for BTC -> USD
+     * @param _inverted indicates wether the price conversion is inverted, meaning is btc/Asset
      */
     constructor(
         AggregatorV3Interface _assetUsdClFeed,
