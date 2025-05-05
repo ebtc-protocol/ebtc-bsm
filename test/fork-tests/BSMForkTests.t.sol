@@ -24,13 +24,21 @@ contract BSMForkTests is Test {
     OraclePriceConstraint public oraclePriceConstraint = OraclePriceConstraint(0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e);
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
-    address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
+    address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;//TODO maybe just mnt it instead of picking a pool
     address bsmAdmin = 0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264;
     uint256 initBlock = 22384650;// Block where BSM and peripheral contracts were already deployed and governance roles set
+    uint256 wrapped = block.timestamp + 2 days;// Days until minting and burning are approved
 
     function setUp() public {
         uint256 forkId = vm.createFork(vm.envString("RPC_URL"), initBlock);
         vm.selectFork(forkId);
+
+        vm.warp(wrapped);
+
+        vm.prank(bsmAdmin);
+        authority.setUserRole(address(ebtcBSM), 1, true);
+        vm.prank(bsmAdmin);
+        authority.setUserRole(address(ebtcBSM), 2, true);
     }
 
     // Deployment tests
@@ -157,7 +165,7 @@ contract BSMForkTests is Test {
         assertEq(cbBtc.balanceOf(bsmAdmin), amount);
         assertEq(ebtc.balanceOf(bsmAdmin), 0);
     }
-    // TODO extract the setup and make a baseTest for fork tests
+
     // TODO create helper to avoid repeating code so much
     function testAdminRole() public {
         address user = bsmAdmin;
