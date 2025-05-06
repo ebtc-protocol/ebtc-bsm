@@ -26,6 +26,7 @@ contract BSMForkTests is Test {
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
     address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;//TODO maybe just mnt it instead of picking a pool
     address bsmAdmin = 0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264;
+    address mintingManager = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
     uint256 initBlock = 22384650;// Block where BSM and peripheral contracts were already deployed and governance roles set
     uint256 wrapped = block.timestamp + 2 days;// Days until minting and burning are approved
 
@@ -113,59 +114,6 @@ contract BSMForkTests is Test {
         baseEscrow.claimTokens(address(1), 0);
     }
 
-    // Buy & Sell tests
-    function testBuyAndSell() public {
-        uint256 relativeCapBPS = 1000;
-        uint256 totalEbtcSupply = activePoolObserver.observe();
-        uint256 maxMint = (totalEbtcSupply * relativeCapBPS) / rateLimitingConstraint.BPS();//ebtc decimals
-        uint256 amount = (maxMint / 4) * ebtcBSM.ASSET_TOKEN_PRECISION() / 1e18;// asset decimals
-        uint256 ebtcAmount = amount * 1e18 / ebtcBSM.ASSET_TOKEN_PRECISION();
-
-        // Basic sell
-        vm.prank(cbBtcPool);// Fund account
-        cbBtc.transfer(bsmAdmin, amount);
-        
-        vm.prank(bsmAdmin);
-        cbBtc.approve(address(ebtcBSM), amount);
-
-        assertEq(cbBtc.balanceOf(bsmAdmin), amount);
-        assertEq(ebtc.balanceOf(bsmAdmin), 0);
-
-        vm.prank(bsmAdmin);
-        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(relativeCapBPS, 0, false));
-        
-        vm.expectEmit();
-        emit IEbtcBSM.AssetSold(amount, ebtcAmount, 0);
-
-        vm.prank(bsmAdmin);
-        uint256 sellResult = ebtcBSM.sellAsset(amount, bsmAdmin, 0);
-        assertEq(sellResult, ebtcAmount);
-
-        // These 2 checks also check that ebtcBSM.totalMinted() == baseEscrow.totalAssetsDeposited()
-        assertEq(ebtcBSM.totalMinted(), ebtcAmount);
-        assertEq(baseEscrow.totalAssetsDeposited(), amount);
-
-        assertEq(cbBtc.balanceOf(bsmAdmin), 0);
-        assertEq(ebtc.balanceOf(bsmAdmin), ebtcAmount);
-        assertEq(cbBtc.balanceOf(address(ebtcBSM.escrow())), amount);
-
-        // Basic buy
-        assertEq(ebtcBSM.previewBuyAsset(ebtcAmount), amount);
-
-        vm.recordLogs();
-        vm.prank(bsmAdmin);
-
-        assertEq(ebtcBSM.buyAsset(ebtcAmount, bsmAdmin, 0), amount);
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-
-        assertEq(entries[0].topics[0], keccak256("Transfer(address,address,uint256)"));
-        assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
-        assertEq(entries[2].topics[0], keccak256("AssetBought(uint256,uint256,uint256)"));
-
-        assertEq(cbBtc.balanceOf(bsmAdmin), amount);
-        assertEq(ebtc.balanceOf(bsmAdmin), 0);
-    }
-
     // TODO create helper to avoid repeating code so much
     function testAdminRole() public {
         address user = bsmAdmin;
@@ -215,33 +163,31 @@ contract BSMForkTests is Test {
     }
 
     function testEscrowMngRole() public {
-        address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
         uint8 roleId = 18;
 
-        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertTrue(contains(authority.getRolesForUser(mintingManager), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Escrow Manager");
 
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xf011a7af);
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xfe417fa5);
 
-        authority.canCall(user, address(ebtcBSM), 0xf011a7af);
-        authority.canCall(user, address(ebtcBSM), 0xfe417fa5);
+        authority.canCall(mintingManager, address(ebtcBSM), 0xf011a7af);
+        authority.canCall(mintingManager, address(ebtcBSM), 0xfe417fa5);
     }
 
     function testConstraintMngRole() public {
-        address user = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
         uint8 roleId = 19;
 
-        assertTrue(contains(authority.getRolesForUser(user), roleId));
+        assertTrue(contains(authority.getRolesForUser(mintingManager), roleId));
         assertEq(authority.getRoleName(roleId), "BSM: Constraint Manager");
 
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x5ea8cd12);
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xb6b2d4a6);
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0x0439e932);
 
-        authority.canCall(user, address(ebtcBSM), 0x5ea8cd12);
-        authority.canCall(user, address(ebtcBSM), 0xb6b2d4a6);
-        authority.canCall(user, address(ebtcBSM), 0x0439e932);
+        authority.canCall(mintingManager, address(ebtcBSM), 0x5ea8cd12);
+        authority.canCall(mintingManager, address(ebtcBSM), 0xb6b2d4a6);
+        authority.canCall(mintingManager, address(ebtcBSM), 0x0439e932);
     }
 
     function testAuthUserRole() public {
@@ -251,6 +197,61 @@ contract BSMForkTests is Test {
 
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xf00e8600);
         authority.doesRoleHaveCapability(roleId, address(ebtcBSM), 0xc2a538e6);
+    }
+
+    // Buy & Sell tests
+    function testBuyAndSell() public {
+        uint256 relativeCapBPS = 1000;
+        uint256 totalEbtcSupply = ebtc.totalSupply();
+        uint256 maxMint = (totalEbtcSupply * relativeCapBPS) / rateLimitingConstraint.BPS();//ebtc decimals
+        uint256 amount = (maxMint / 4) * ebtcBSM.ASSET_TOKEN_PRECISION() / 1e18;// asset decimals
+        uint256 ebtcAmount = amount * 1e18 / ebtcBSM.ASSET_TOKEN_PRECISION();
+
+        // Basic sell
+        vm.prank(cbBtcPool);// Fund account
+        cbBtc.transfer(bsmAdmin, amount);
+        
+        vm.prank(bsmAdmin);
+        cbBtc.approve(address(ebtcBSM), amount);
+
+        assertEq(cbBtc.balanceOf(bsmAdmin), amount);
+        assertEq(ebtc.balanceOf(bsmAdmin), 0);
+        console.logBytes4(rateLimitingConstraint.setMintingConfig.selector);
+        vm.prank(mintingManager);
+        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(relativeCapBPS, 0, false));
+        (, int256 answer, , uint256 updatedAt, ) = assetChainlinkAdapter.latestRoundData();
+        console.log(answer);
+        
+        vm.expectEmit();
+        emit IEbtcBSM.AssetSold(amount, ebtcAmount, 0);
+
+        vm.prank(bsmAdmin);
+        uint256 sellResult = ebtcBSM.sellAsset(amount, bsmAdmin, 0);
+        assertEq(sellResult, ebtcAmount);
+
+        // These 2 checks also check that ebtcBSM.totalMinted() == baseEscrow.totalAssetsDeposited()
+        assertEq(ebtcBSM.totalMinted(), ebtcAmount);
+        assertEq(baseEscrow.totalAssetsDeposited(), amount);
+
+        assertEq(cbBtc.balanceOf(bsmAdmin), 0);
+        assertEq(ebtc.balanceOf(bsmAdmin), ebtcAmount);
+        assertEq(cbBtc.balanceOf(address(ebtcBSM.escrow())), amount);
+
+        // Basic buy
+        assertEq(ebtcBSM.previewBuyAsset(ebtcAmount), amount);
+
+        vm.recordLogs();
+        vm.prank(bsmAdmin);
+
+        assertEq(ebtcBSM.buyAsset(ebtcAmount, bsmAdmin, 0), amount);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        assertEq(entries[0].topics[0], keccak256("Transfer(address,address,uint256)"));
+        assertEq(entries[1].topics[0], keccak256("Transfer(address,address,uint256)"));
+        assertEq(entries[2].topics[0], keccak256("AssetBought(uint256,uint256,uint256)"));
+
+        assertEq(cbBtc.balanceOf(bsmAdmin), amount);
+        assertEq(ebtc.balanceOf(bsmAdmin), 0);
     }
 
     // Helpers
