@@ -108,13 +108,17 @@ contract BSMForkTests is Test {
     function testAdminRole() public {
         address user = bsmAdmin;
         uint8 roleId = 15;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0x8b6a101a;
+        capabilities[1] = 0x037ba2ab;
+        capabilities[2] = 0xe19e50d4;
+        capabilities[3] = 0x6045bfc5;
 
         assertUserRole(roleId, user);
         assertRoleName(roleId, "BSM: Admin");
 
-        assertRoleCapabilities(roleId, [0x8b6a101a, 0x037ba2ab, 0xe19e50d4, 0x6045bfc5]);
-
-        assertUserCapabilities(user, [0x8b6a101a, 0x037ba2ab, 0xe19e50d4, 0x6045bfc5]);
+        assertRoleCapabilities(roleId, capabilities);
+        assertUserCapabilities(user, capabilities);
         //TODO test with bsm actual contract
         
     }
@@ -122,54 +126,70 @@ contract BSMForkTests is Test {
     function testFeeMngRole() public {
         address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
         uint8 roleId = 16;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0x9154cff2;
+        capabilities[1] = 0x9a24ceb8;
 
         assertRoleName(roleId, "BSM: Fee Manager");
         assertUserRole(roleId, user);
-        assertRoleCapabilities(roleId, [0x9154cff2, 0x9a24ceb8]);
+        assertRoleCapabilities(roleId, capabilities);
 
-        assertUserCapabilities(user, [0x9154cff2, 0x9a24ceb8]);
+        assertUserCapabilities(user, capabilities);
     }
 
     function testPauserRole() public {
         address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
         uint8 roleId = 17;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0x8456cb59;
+        capabilities[1] = 0x3f4ba83a;
 
         assertUserRole(roleId, user);
         assertRoleName(roleId, "BSM: Pauser");
 
-        assertRoleCapabilities(roleId, [0x8456cb59, 0x3f4ba83a]);
+        assertRoleCapabilities(roleId, capabilities);
 
-        assertUserCapabilities(user, [0x8456cb59, 0x3f4ba83a]);
+        assertUserCapabilities(user, capabilities);
     }
 
     function testEscrowMngRole() public {
         uint8 roleId = 18;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0xf011a7af;
+        capabilities[1] = 0xfe417fa5;
 
         assertUserRole(roleId, mintingManager);
         assertRoleName(roleId, "BSM: Escrow Manager");
 
-        assertRoleCapabilities(roleId, [0xf011a7af, 0xfe417fa5]);
+        assertRoleCapabilities(roleId, capabilities);
 
-        assertUserCapabilities(mintingManager, [0xf011a7af, 0xfe417fa5]);
+        assertUserCapabilities(mintingManager, capabilities);
     }
 
     function testConstraintMngRole() public {
         uint8 roleId = 19;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0x5ea8cd12;
+        capabilities[1] = 0xb6b2d4a6;
+        capabilities[2] = 0x0439e932;
 
         assertUserRole(roleId, mintingManager);
         assertRoleName(roleId, "BSM: Constraint Manager");
 
-        assertRoleCapabilities(roleId, [0x5ea8cd12, 0xb6b2d4a6, 0x0439e932]);
+        assertRoleCapabilities(roleId, capabilities);
 
-        assertUserCapabilities(mintingManager, [0x5ea8cd12, 0xb6b2d4a6, 0x0439e932]);
+        assertUserCapabilities(mintingManager, capabilities);
     }
 
     function testAuthUserRole() public {
         uint8 roleId = 20;
+        bytes4[] memory capabilities;
+        capabilities[0] = 0xf00e8600;
+        capabilities[1] = 0xc2a538e6;
 
         assertRoleName(roleId, "BSM: Authorized User");
 
-        assertRoleCapabilities(roleId, [0xf00e8600, 0xc2a538e6]);
+        assertRoleCapabilities(roleId, capabilities);
     }
 
     // Buy & Sell tests
