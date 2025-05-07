@@ -42,8 +42,8 @@ contract BSMForkTests is Test {
         assertEq(address(ebtcBSM.buyAssetConstraint()), address(dummyConstraint));
         assertEq(address(ebtcBSM.ASSET_TOKEN()), address(cbBtc));
         assertEq(address(ebtcBSM.EBTC_TOKEN()), address(ebtc));
-        assertTrue(contains(authority.getRolesForUser(address(ebtcBSM)), 1));
-        assertTrue(contains(authority.getRolesForUser(address(ebtcBSM)), 2));
+        assertUserRole(1, address(ebtcBSM));
+        assertUserRole(2, address(ebtcBSM));
 
         // Check initialization
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
@@ -108,7 +108,7 @@ contract BSMForkTests is Test {
     function testAdminRole() public {
         address user = bsmAdmin;
         uint8 roleId = 15;
-        bytes4[] memory capabilities;
+        bytes4[] memory capabilities = new bytes4[](4);
         capabilities[0] = 0x8b6a101a;
         capabilities[1] = 0x037ba2ab;
         capabilities[2] = 0xe19e50d4;
@@ -117,79 +117,82 @@ contract BSMForkTests is Test {
         assertUserRole(roleId, user);
         assertRoleName(roleId, "BSM: Admin");
 
-        assertRoleCapabilities(roleId, capabilities);
-        assertUserCapabilities(user, capabilities);
-        //TODO test with bsm actual contract
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
+        //TODO make sure the selectors are correct
         
     }
 
     function testFeeMngRole() public {
         address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
         uint8 roleId = 16;
-        bytes4[] memory capabilities;
+        bytes4[] memory capabilities = new bytes4[](2);
         capabilities[0] = 0x9154cff2;
         capabilities[1] = 0x9a24ceb8;
 
         assertRoleName(roleId, "BSM: Fee Manager");
         assertUserRole(roleId, user);
-        assertRoleCapabilities(roleId, capabilities);
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
 
-        assertUserCapabilities(user, capabilities);
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
     }
 
     function testPauserRole() public {
         address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
         uint8 roleId = 17;
-        bytes4[] memory capabilities;
+        bytes4[] memory capabilities = new bytes4[](2);
         capabilities[0] = 0x8456cb59;
         capabilities[1] = 0x3f4ba83a;
 
         assertUserRole(roleId, user);
         assertRoleName(roleId, "BSM: Pauser");
 
-        assertRoleCapabilities(roleId, capabilities);
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
 
-        assertUserCapabilities(user, capabilities);
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
     }
 
     function testEscrowMngRole() public {
         uint8 roleId = 18;
-        bytes4[] memory capabilities;
+        bytes4[] memory capabilities = new bytes4[](2);
         capabilities[0] = 0xf011a7af;
         capabilities[1] = 0xfe417fa5;
 
         assertUserRole(roleId, mintingManager);
         assertRoleName(roleId, "BSM: Escrow Manager");
 
-        assertRoleCapabilities(roleId, capabilities);
+        assertRoleCapabilities(roleId, capabilities, address(baseEscrow));
 
-        assertUserCapabilities(mintingManager, capabilities);
+        assertUserCapabilities(mintingManager, capabilities, address(baseEscrow));
     }
 
     function testConstraintMngRole() public {
         uint8 roleId = 19;
-        bytes4[] memory capabilities;
-        capabilities[0] = 0x5ea8cd12;
-        capabilities[1] = 0xb6b2d4a6;
-        capabilities[2] = 0x0439e932;
+        bytes4[] memory oracleCapabilities = new bytes4[](2);
+        oracleCapabilities[0] = 0x5ea8cd12;
+        oracleCapabilities[1] = 0xb6b2d4a6;
+        bytes4[] memory mintCapabilities = new bytes4[](1);
+        mintCapabilities[0] = 0x0439e932;
 
         assertUserRole(roleId, mintingManager);
         assertRoleName(roleId, "BSM: Constraint Manager");
 
-        assertRoleCapabilities(roleId, capabilities);
+        assertRoleCapabilities(roleId, oracleCapabilities, address(oraclePriceConstraint));
+        assertUserCapabilities(mintingManager, oracleCapabilities, address(oraclePriceConstraint));
 
-        assertUserCapabilities(mintingManager, capabilities);
+        assertRoleCapabilities(roleId, mintCapabilities, address(rateLimitingConstraint));
+        assertUserCapabilities(mintingManager, mintCapabilities, address(rateLimitingConstraint));
     }
 
     function testAuthUserRole() public {
         uint8 roleId = 20;
-        bytes4[] memory capabilities;
+        bytes4[] memory capabilities = new bytes4[](2);
         capabilities[0] = 0xf00e8600;
         capabilities[1] = 0xc2a538e6;
 
         assertRoleName(roleId, "BSM: Authorized User");
 
-        assertRoleCapabilities(roleId, capabilities);
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
     }
 
     // Buy & Sell tests
@@ -246,33 +249,24 @@ contract BSMForkTests is Test {
     }
 
     function assertUserRole(uint8 roleId, address user) internal {
-        assertTrue(contains(authority.getRolesForUser(mintingManager), roleId));
+        console.log(user, authority.doesUserHaveRole(user, roleId), roleId);
+        assertTrue(authority.doesUserHaveRole(user, roleId));
     }
 
     function assertRoleName(uint8 roleId, string memory name) internal {
         assertEq(authority.getRoleName(roleId), name);
     }
 
-    function assertRoleCapabilities(uint8 roleId, bytes4[] memory capabilities) internal {
+    function assertRoleCapabilities(uint8 roleId, bytes4[] memory capabilities, address target) internal {
         for(uint i = 0;i < capabilities.length;i++){
-            assertTrue(authority.doesRoleHaveCapability(roleId, address(ebtcBSM), capabilities[i]));
+            assertTrue(authority.doesRoleHaveCapability(roleId, target, capabilities[i]));
         }
     }
 
-    function assertUserCapabilities(address user, bytes4[] memory capabilities) internal {
+    function assertUserCapabilities(address user, bytes4[] memory capabilities, address target) internal {
         for(uint i = 0;i < capabilities.length;i++){
-            assertTrue(authority.canCall(user, address(ebtcBSM), capabilities[i]));
+            assertTrue(authority.canCall(user, target, capabilities[i]));
         }
-    }
-
-    // Helpers
-    function contains(uint8[] memory arr, uint8 value) internal pure returns (bool) {
-        for (uint i = 0; i < arr.length; i++) {
-            if (arr[i] == value) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }
