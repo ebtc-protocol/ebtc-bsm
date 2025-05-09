@@ -222,7 +222,7 @@ contract BSMForkTests is Test {
 
         vm.prank(user);
         ebtcBSM.pause();
-        vm.expectRevert("EnforcedPause()");
+        vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));
         ebtcBSM.previewSellAsset(1);
 
         vm.prank(user);
@@ -252,7 +252,7 @@ contract BSMForkTests is Test {
         baseEscrow.claimProfit();// No profit yet but should not revert
         
         vm.prank(mintingManager);
-        baseEscrow.claimTokens(address(baseEscrow), amount);
+        baseEscrow.claimTokens(address(mockToken), amount);
         assertEq(mockToken.balanceOf(address(baseEscrow)), 0);
     }
 
