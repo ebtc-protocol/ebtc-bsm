@@ -10,6 +10,7 @@ import "../../src/EbtcBSM.sol";
 import "../../src/Dependencies/Governor.sol";
 import "../../src/OraclePriceConstraint.sol";
 import "../../src/RateLimitingConstraint.sol";
+import "../mocks/MockAssetToken.sol";
 
 contract BSMForkTests is Test {
     // Gather contracts
@@ -24,7 +25,7 @@ contract BSMForkTests is Test {
     OraclePriceConstraint public oraclePriceConstraint = OraclePriceConstraint(0xE66CD7ce741cF314Dc383d66315b61e1C9A3A15e);
     BaseEscrow public baseEscrow = BaseEscrow(0x686FdecC0572e30768331D4e1a44E5077B2f6083);
     EbtcBSM public ebtcBSM = EbtcBSM(0x828787A14fd4470Ef925Eefa8a56C88D85D4a06A);
-    address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;//TODO maybe just mint it instead of picking a pool
+    address cbBtcPool = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
     address bsmAdmin = 0xaDDeE229Bd103bb5B10C3CdB595A01c425dd3264;
     address mintingManager = 0x690C74AF48BE029e763E61b4aDeB10E06119D3ba;
     
@@ -55,144 +56,6 @@ contract BSMForkTests is Test {
         assertEq(config.relativeCapBPS, 0);
         assertEq(config.absoluteCap, 0);
         assertEq(config.useAbsoluteCap, false);
-    }
-
-    // AUTH tests
-    function testSecurity() public {
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(0, 0, false));
-
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        oraclePriceConstraint.setMinPrice(0);
-
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        oraclePriceConstraint.setOracleFreshness(0);
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.sellAssetNoFee(0, address(1), 0);
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.buyAssetNoFee(0, address(1), 0); 
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.setFeeToSell(0);
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.setFeeToBuy(0);
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.setRateLimitingConstraint(address(1));
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.setOraclePriceConstraint(address(1)); 
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.setBuyAssetConstraint(address(1)); 
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.updateEscrow(address(1));
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.pause();
-        
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        ebtcBSM.unpause();
-
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        baseEscrow.claimProfit();
-
-        vm.expectRevert("Auth: UNAUTHORIZED");
-        baseEscrow.claimTokens(address(1), 0);
-    }
-
-    function testAdminRole() public {
-        address user = bsmAdmin;
-        uint8 roleId = 15;
-        bytes4[] memory capabilities = new bytes4[](4);
-        capabilities[0] = 0x8b6a101a;
-        capabilities[1] = 0x037ba2ab;
-        capabilities[2] = 0xe19e50d4;
-        capabilities[3] = 0x6045bfc5;
-
-        assertUserRole(roleId, user);
-        assertRoleName(roleId, "BSM: Admin");
-
-        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
-        assertUserCapabilities(user, capabilities, address(ebtcBSM));
-        //TODO make sure the selectors are correct
-        
-    }
-
-    function testFeeMngRole() public {
-        address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
-        uint8 roleId = 16;
-        bytes4[] memory capabilities = new bytes4[](2);
-        capabilities[0] = 0x9154cff2;
-        capabilities[1] = 0x9a24ceb8;
-
-        assertRoleName(roleId, "BSM: Fee Manager");
-        assertUserRole(roleId, user);
-        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
-
-        assertUserCapabilities(user, capabilities, address(ebtcBSM));
-    }
-
-    function testPauserRole() public {
-        address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
-        uint8 roleId = 17;
-        bytes4[] memory capabilities = new bytes4[](2);
-        capabilities[0] = 0x8456cb59;
-        capabilities[1] = 0x3f4ba83a;
-
-        assertUserRole(roleId, user);
-        assertRoleName(roleId, "BSM: Pauser");
-
-        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
-
-        assertUserCapabilities(user, capabilities, address(ebtcBSM));
-    }
-
-    function testEscrowMngRole() public {
-        uint8 roleId = 18;
-        bytes4[] memory capabilities = new bytes4[](2);
-        capabilities[0] = 0xf011a7af;
-        capabilities[1] = 0xfe417fa5;
-
-        assertUserRole(roleId, mintingManager);
-        assertRoleName(roleId, "BSM: Escrow Manager");
-
-        assertRoleCapabilities(roleId, capabilities, address(baseEscrow));
-
-        assertUserCapabilities(mintingManager, capabilities, address(baseEscrow));
-    }
-
-    function testConstraintMngRole() public {
-        uint8 roleId = 19;
-        bytes4[] memory oracleCapabilities = new bytes4[](2);
-        oracleCapabilities[0] = 0x5ea8cd12;
-        oracleCapabilities[1] = 0xb6b2d4a6;
-        bytes4[] memory mintCapabilities = new bytes4[](1);
-        mintCapabilities[0] = 0x0439e932;
-
-        assertUserRole(roleId, mintingManager);
-        assertRoleName(roleId, "BSM: Constraint Manager");
-
-        assertRoleCapabilities(roleId, oracleCapabilities, address(oraclePriceConstraint));
-        assertUserCapabilities(mintingManager, oracleCapabilities, address(oraclePriceConstraint));
-
-        assertRoleCapabilities(roleId, mintCapabilities, address(rateLimitingConstraint));
-        assertUserCapabilities(mintingManager, mintCapabilities, address(rateLimitingConstraint));
-    }
-
-    function testAuthUserRole() public {
-        uint8 roleId = 20;
-        bytes4[] memory capabilities = new bytes4[](2);
-        capabilities[0] = 0xf00e8600;
-        capabilities[1] = 0xc2a538e6;
-
-        assertRoleName(roleId, "BSM: Authorized User");
-
-        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
     }
 
     // Buy & Sell tests
@@ -248,8 +111,187 @@ contract BSMForkTests is Test {
         assertEq(ebtc.balanceOf(bsmAdmin), 0);
     }
 
+    // AUTH tests
+    function testSecurity() public {
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        rateLimitingConstraint.setMintingConfig(address(ebtcBSM), RateLimitingConstraint.MintingConfig(0, 0, false));
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        oraclePriceConstraint.setMinPrice(0);
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        oraclePriceConstraint.setOracleFreshness(0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.sellAssetNoFee(0, address(1), 0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.buyAssetNoFee(0, address(1), 0); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setFeeToSell(0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setFeeToBuy(0);
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setRateLimitingConstraint(address(1));
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setOraclePriceConstraint(address(1)); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.setBuyAssetConstraint(address(1)); 
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.updateEscrow(address(1));
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.pause();
+        
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        ebtcBSM.unpause();
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        baseEscrow.claimProfit();
+
+        vm.expectRevert("Auth: UNAUTHORIZED");
+        baseEscrow.claimTokens(address(1), 0);
+    }
+
+    function testAdminRole() public {
+        address user = bsmAdmin;
+        uint8 roleId = 15;
+        bytes4[] memory capabilities = new bytes4[](4);
+        capabilities[0] = ebtcBSM.updateEscrow.selector;
+        capabilities[1] = ebtcBSM.setOraclePriceConstraint.selector;
+        capabilities[2] = ebtcBSM.setRateLimitingConstraint.selector;
+        capabilities[3] = ebtcBSM.setBuyAssetConstraint.selector;
+
+        assertUserRole(roleId, user);
+        assertRoleName(roleId, "BSM: Admin");
+
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
+        
+        DummyConstraint dummy = new DummyConstraint();
+
+        vm.prank(user);
+        ebtcBSM.updateEscrow(address(dummy));
+        vm.prank(user);
+        ebtcBSM.setOraclePriceConstraint(address(dummy));
+        vm.prank(user);
+        ebtcBSM.setRateLimitingConstraint(address(dummy));
+        vm.prank(user);
+        ebtcBSM.setBuyAssetConstraint(address(dummy));
+        
+    }
+
+    function testFeeMngRole() public {
+        address user = 0xE2F2D9e226e5236BeC4531FcBf1A22A7a2bD0602;
+        uint8 roleId = 16;
+        bytes4[] memory capabilities = new bytes4[](2);
+        capabilities[0] = ebtcBSM.setFeeToSell.selector;
+        capabilities[1] = ebtcBSM.setFeeToBuy.selector;
+
+        assertRoleName(roleId, "BSM: Fee Manager");
+        assertUserRole(roleId, user);
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
+
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
+
+        vm.prank(user);
+        ebtcBSM.setFeeToSell(1);
+        vm.prank(user);
+        ebtcBSM.setFeeToBuy(1);
+    }
+
+    function testPauserRole() public {
+        address user = 0xB3d3B6482fb50C82aa042A710775c72dfa23F7B4;
+        uint8 roleId = 17;
+        bytes4[] memory capabilities = new bytes4[](2);
+        capabilities[0] =  ebtcBSM.pause.selector;
+        capabilities[1] = ebtcBSM.unpause.selector;
+
+        assertUserRole(roleId, user);
+        assertRoleName(roleId, "BSM: Pauser");
+
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
+
+        assertUserCapabilities(user, capabilities, address(ebtcBSM));
+
+        vm.prank(user);
+        ebtcBSM.pause();
+        vm.expectRevert("EnforcedPause()");
+        ebtcBSM.previewSellAsset(1);
+
+        vm.prank(user);
+        ebtcBSM.unpause();
+
+        ebtcBSM.previewSellAsset(1);
+    }
+
+    function testEscrowMngRole(uint256 amount) public {
+        uint8 roleId = 18;
+        bytes4[] memory capabilities = new bytes4[](2);
+        capabilities[0] = baseEscrow.claimProfit.selector;
+        capabilities[1] = baseEscrow.claimTokens.selector;
+
+        assertUserRole(roleId, mintingManager);
+        assertRoleName(roleId, "BSM: Escrow Manager");
+
+        assertRoleCapabilities(roleId, capabilities, address(baseEscrow));
+
+        assertUserCapabilities(mintingManager, capabilities, address(baseEscrow));
+
+        MockAssetToken mockToken = new MockAssetToken(18);
+        
+        // Sending tokens
+        mockToken.mint(address(baseEscrow), amount);
+        vm.prank(mintingManager);
+        baseEscrow.claimProfit();// No profit yet but should not revert
+        
+        vm.prank(mintingManager);
+        baseEscrow.claimTokens(address(baseEscrow), amount);
+        assertEq(mockToken.balanceOf(address(baseEscrow)), 0);
+    }
+
+    function testConstraintMngRole() public {
+        uint8 roleId = 19;
+        bytes4[] memory oracleCapabilities = new bytes4[](2);
+        oracleCapabilities[0] = oraclePriceConstraint.setMinPrice.selector;
+        oracleCapabilities[1] = oraclePriceConstraint.setOracleFreshness.selector;
+        bytes4[] memory mintCapabilities = new bytes4[](1);
+        mintCapabilities[0] = rateLimitingConstraint.setMintingConfig.selector;
+
+        assertUserRole(roleId, mintingManager);
+        assertRoleName(roleId, "BSM: Constraint Manager");
+
+        assertRoleCapabilities(roleId, oracleCapabilities, address(oraclePriceConstraint));
+        assertUserCapabilities(mintingManager, oracleCapabilities, address(oraclePriceConstraint));
+
+        assertRoleCapabilities(roleId, mintCapabilities, address(rateLimitingConstraint));
+        assertUserCapabilities(mintingManager, mintCapabilities, address(rateLimitingConstraint));
+
+        vm.prank(mintingManager);
+        oraclePriceConstraint.setMinPrice(9000);
+
+        vm.prank(mintingManager);
+        oraclePriceConstraint.setOracleFreshness(1000);
+    }
+
+    function testAuthUserRole() public {
+        uint8 roleId = 20;
+        bytes4[] memory capabilities = new bytes4[](2);
+        capabilities[0] = ebtcBSM.sellAssetNoFee.selector;
+        capabilities[1] = ebtcBSM.buyAssetNoFee.selector;
+
+        assertRoleName(roleId, "BSM: Authorized User");
+
+        assertRoleCapabilities(roleId, capabilities, address(ebtcBSM));
+    }
+
     function assertUserRole(uint8 roleId, address user) internal {
-        console.log(user, authority.doesUserHaveRole(user, roleId), roleId);
         assertTrue(authority.doesUserHaveRole(user, roleId));
     }
 
